@@ -62,6 +62,7 @@ class AgentCoordinator: ObservableObject {
     voiceAgent.onToolCall = { [weak self] id, name, args in
       guard let self else { return }
       let taskDesc = args["task"] as? String ?? String(describing: args)
+      RemoteLogger.shared.log("voice:tool_call", data: ["tool": name, "task": taskDesc])
       let task = AgentTask(id: id, name: name, description: taskDesc)
       self.actionAgent.executeTask(task)
     }
@@ -75,6 +76,12 @@ class AgentCoordinator: ObservableObject {
 
     // Action Agent -> Voice Agent: deliver results back to voice model
     actionAgent.onResult = { [weak self] result in
+      let resultText: String
+      switch result.result {
+      case .success(let s): resultText = s
+      case .failure(let e): resultText = "ERROR: \(e)"
+      }
+      RemoteLogger.shared.log("voice:tool_result", data: ["tool": result.toolName, "result": String(resultText.prefix(500))])
       self?.voiceAgent.sendToolResponse(result.responsePayload)
     }
   }

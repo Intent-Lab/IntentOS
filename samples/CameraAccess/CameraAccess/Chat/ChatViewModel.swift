@@ -43,6 +43,7 @@ class ChatViewModel: ObservableObject {
 
     messages.append(ChatMessage(role: .user, text: text))
     messages.append(ChatMessage(role: .assistant, text: "", status: .streaming))
+    RemoteLogger.shared.log("chat:user", data: ["text": text])
 
     sendTask = Task {
       // Check agent connectivity first
@@ -54,11 +55,13 @@ class ChatViewModel: ObservableObject {
 
       switch result {
       case .success(let response):
+        RemoteLogger.shared.log("chat:agent", data: ["text": String(response.prefix(500))])
         updateLastAssistantMessage { msg in
           msg.text = response
           msg.status = .complete
         }
       case .failure(let error):
+        RemoteLogger.shared.log("chat:error", data: ["error": error])
         updateLastAssistantMessage { msg in
           msg.text = "Failed to reach agent: \(error)"
           msg.status = .error(error)
@@ -117,9 +120,11 @@ class ChatViewModel: ObservableObject {
         // Snapshot transcript pair when turn completes (transcripts cleared)
         if newUser.isEmpty && !self.lastUserTranscript.isEmpty {
           if !self.lastUserTranscript.isEmpty {
+            RemoteLogger.shared.log("voice:user", data: ["text": self.lastUserTranscript])
             self.voiceTranscripts.append((role: .user, text: self.lastUserTranscript))
           }
           if !self.lastAITranscript.isEmpty {
+            RemoteLogger.shared.log("voice:ai", data: ["text": self.lastAITranscript])
             self.voiceTranscripts.append((role: .assistant, text: self.lastAITranscript))
           }
           self.lastUserTranscript = ""
@@ -128,6 +133,7 @@ class ChatViewModel: ObservableObject {
       }
     }
 
+    RemoteLogger.shared.log("session:voice_start")
     await geminiSessionVM.startSession()
 
     if !geminiSessionVM.isGeminiActive {
@@ -146,6 +152,7 @@ class ChatViewModel: ObservableObject {
       voiceTranscripts.append((role: .assistant, text: lastAITranscript))
     }
 
+    RemoteLogger.shared.log("session:voice_end", data: ["turns": String(voiceTranscripts.count)])
     geminiSessionVM.stopSession()
     voiceObservation?.cancel()
     voiceObservation = nil
