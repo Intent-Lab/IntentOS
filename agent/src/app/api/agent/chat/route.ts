@@ -4,6 +4,7 @@ import {
   runAgent,
   updateAgentSession,
 } from "@/lib/sandbox";
+import { log } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
@@ -14,6 +15,7 @@ interface ChatMessage {
 }
 
 export async function POST(request: NextRequest) {
+  let sessionKey = "unknown";
   try {
     // Auth: simple shared token
     const apiToken = request.headers.get("x-api-token");
@@ -42,7 +44,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sessionKey =
+    sessionKey =
       request.headers.get("x-agent-session-key") ||
       `anonymous:${Date.now()}`;
 
@@ -61,6 +63,8 @@ export async function POST(request: NextRequest) {
     }
 
     const prompt = lastUserMessage.content;
+
+    await log("request", { prompt: prompt.slice(0, 500), messageCount: body.messages.length }, sessionKey);
 
     // Build system prompt from earlier system messages (if any)
     const systemMessages = body.messages
@@ -82,6 +86,14 @@ export async function POST(request: NextRequest) {
     if (result.sessionId) {
       updateAgentSession(sessionKey, result.sessionId);
     }
+
+    await log("response", {
+      prompt: prompt.slice(0, 200),
+      response: result.result.slice(0, 500),
+      costUsd: result.costUsd,
+      durationMs: result.durationMs,
+      sessionId: result.sessionId,
+    }, sessionKey);
 
     // Return OpenAI-compatible response format
     return NextResponse.json({
@@ -107,6 +119,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("[Agent] Error:", message);
+    await log("error", { error: message }, sessionKey);
     return NextResponse.json(
       { error: `Agent error: ${message}` },
       { status: 502 }
