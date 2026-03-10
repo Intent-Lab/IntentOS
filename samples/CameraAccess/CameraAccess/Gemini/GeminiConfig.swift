@@ -49,6 +49,15 @@ enum GeminiConfig {
   static var openClawHookToken: String { SettingsManager.shared.openClawHookToken }
   static var openClawGatewayToken: String { SettingsManager.shared.openClawGatewayToken }
 
+  // Text chat (REST API)
+  static let textChatModel = "gemini-2.5-flash"
+  static let restBaseURL = "https://generativelanguage.googleapis.com/v1beta"
+
+  static func textChatURL() -> URL? {
+    guard isConfigured else { return nil }
+    return URL(string: "\(restBaseURL)/models/\(textChatModel):streamGenerateContent?alt=sse&key=\(apiKey)")
+  }
+
   static func websocketURL() -> URL? {
     guard apiKey != "YOUR_GEMINI_API_KEY" && !apiKey.isEmpty else { return nil }
     return URL(string: "\(websocketBaseURL)?key=\(apiKey)")
