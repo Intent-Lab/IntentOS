@@ -41,6 +41,10 @@
 		9DBB18BC2F5FFF370019775B /* VoiceModelProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18B62F5FFF370019775B /* VoiceModelProvider.swift */; };
 		9DBB18BD2F5FFF370019775B /* ActionAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18AF2F5FFF370019775B /* ActionAgent.swift */; };
 		9DBB18BE2F5FFF370019775B /* AgentCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18B02F5FFF370019775B /* AgentCoordinator.swift */; };
+		9DBB18D32F60A2100019775B /* AgentConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18CF2F60A2100019775B /* AgentConfig.swift */; };
+		9DBB18D42F60A2100019775B /* ToolCallModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18D02F60A2100019775B /* ToolCallModels.swift */; };
+		9DBB18D52F60A2100019775B /* ToolCallRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18D12F60A2100019775B /* ToolCallRouter.swift */; };
+		9DBB18D62F60A2100019775B /* AgentBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18CE2F60A2100019775B /* AgentBridge.swift */; };
 		9DD6CAAF2F3C426600ED7098 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD6CAAD2F3C426600ED7098 /* Secrets.swift */; };
 		9DD6CAFE2F3C62DA00ED7098 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 9DD6CAFD2F3C62DA00ED7098 /* WebRTC */; };
 		9DD6CB052F3C637D00ED7098 /* WebRTCSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD6CB032F3C637D00ED7098 /* WebRTCSessionViewModel.swift */; };
@@ -127,6 +131,10 @@
 		9DBB18B32F5FFF370019775B /* GeminiLiveProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiLiveProvider.swift; sourceTree = "<group>"; };
 		9DBB18B52F5FFF370019775B /* AgentProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentProtocol.swift; sourceTree = "<group>"; };
 		9DBB18B62F5FFF370019775B /* VoiceModelProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceModelProvider.swift; sourceTree = "<group>"; };
+		9DBB18CE2F60A2100019775B /* AgentBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentBridge.swift; sourceTree = "<group>"; };
+		9DBB18CF2F60A2100019775B /* AgentConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentConfig.swift; sourceTree = "<group>"; };
+		9DBB18D02F60A2100019775B /* ToolCallModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolCallModels.swift; sourceTree = "<group>"; };
+		9DBB18D12F60A2100019775B /* ToolCallRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolCallRouter.swift; sourceTree = "<group>"; };
 		9DD6CAAD2F3C426600ED7098 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
 		9DD6CAAE2F3C426600ED7098 /* Secrets.swift.example */ = {isa = PBXFileReference; lastKnownFileType = text; path = Secrets.swift.example; sourceTree = "<group>"; };
 		9DD6CAFF2F3C637D00ED7098 /* CustomVideoCapturer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomVideoCapturer.swift; sourceTree = "<group>"; };
@@ -156,7 +164,6 @@
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9D3C69602F367CF700E641A5 /* iPhone */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = iPhone; sourceTree = "<group>"; };
-		9D85EB992F35EC46006C44D1 /* OpenClaw */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); name = OpenClaw; path = CameraAccess/OpenClaw; sourceTree = SOURCE_ROOT; };
 		E699CC962E8150670052C240 /* CameraAccessTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = CameraAccessTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -233,6 +240,7 @@
 		8FD96B7D2E6F0A9800F56AB1 /* CameraAccess */ = {
 			isa = PBXGroup;
 			children = (
+				9DBB18D22F60A2100019775B /* Agent */,
 				9DBB18B82F5FFF370019775B /* Core */,
 				9DBB18A42F5FFE240019775B /* Chat */,
 				9DD894B12F4047630090B9B9 /* Settings */,
@@ -247,7 +255,6 @@
 				8FD96B782E6F0A9800F56AB1 /* CameraAccess.entitlements */,
 				8FD96B792E6F0A9800F56AB1 /* CameraAccessApp.swift */,
 				8FD96B7B2E6F0A9800F56AB1 /* Info.plist */,
-				9D85EB992F35EC46006C44D1 /* OpenClaw */,
 			);
 			path = CameraAccess;
 			sourceTree = "<group>";
@@ -342,6 +349,17 @@
 			path = Core;
 			sourceTree = "<group>";
 		};
+		9DBB18D22F60A2100019775B /* Agent */ = {
+			isa = PBXGroup;
+			children = (
+				9DBB18CE2F60A2100019775B /* AgentBridge.swift */,
+				9DBB18CF2F60A2100019775B /* AgentConfig.swift */,
+				9DBB18D02F60A2100019775B /* ToolCallModels.swift */,
+				9DBB18D12F60A2100019775B /* ToolCallRouter.swift */,
+			);
+			path = Agent;
+			sourceTree = "<group>";
+		};
 		9DD6CB042F3C637D00ED7098 /* WebRTC */ = {
 			isa = PBXGroup;
 			children = (
@@ -406,7 +424,6 @@
 			);
 			fileSystemSynchronizedGroups = (
 				9D3C69602F367CF700E641A5 /* iPhone */,
-				9D85EB992F35EC46006C44D1 /* OpenClaw */,
 			);
 			name = CameraAccess;
 			productName = CameraAccess;
@@ -499,6 +516,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9DBB18D32F60A2100019775B /* AgentConfig.swift in Sources */,
+				9DBB18D42F60A2100019775B /* ToolCallModels.swift in Sources */,
+				9DBB18D52F60A2100019775B /* ToolCallRouter.swift in Sources */,
+				9DBB18D62F60A2100019775B /* AgentBridge.swift in Sources */,
 				8FD96B7F2E6F0A9800F56AB1 /* CameraAccessApp.swift in Sources */,
 				8FD96B812E6F0A9800F56AB1 /* HomeScreenView.swift in Sources */,
 				8F2D23802E856711002D0588 /* DebugMenuViewModel.swift in Sources */,
@@ -595,7 +616,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.xiaoanliu.Matcha;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xiaoanliu.VisionClaw;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
@@ -623,7 +644,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.xiaoanliu.Matcha;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xiaoanliu.VisionClaw;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
