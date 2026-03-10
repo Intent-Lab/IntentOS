@@ -3,6 +3,7 @@ import SwiftUI
 struct ChatInputBar: View {
   @Binding var text: String
   let isSending: Bool
+  var isInputFocused: FocusState<Bool>.Binding
   let onSend: () -> Void
   let onVoiceTapped: () -> Void
 
@@ -18,6 +19,7 @@ struct ChatInputBar: View {
       TextField("Message...", text: $text, axis: .vertical)
         .font(.body)
         .textFieldStyle(.plain)
+        .focused(isInputFocused)
         .lineLimit(1...5)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

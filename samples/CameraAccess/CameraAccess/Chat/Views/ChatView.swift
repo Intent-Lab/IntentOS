@@ -8,6 +8,7 @@ struct ChatView: View {
 
   @State private var showSettings = false
   @State private var showGlassesStream = false
+  @FocusState private var isInputFocused: Bool
 
   init(wearables: WearablesInterface, wearablesVM: WearablesViewModel) {
     self.wearables = wearables
@@ -32,8 +33,12 @@ struct ChatView: View {
         ChatInputBar(
           text: $viewModel.inputText,
           isSending: viewModel.isSending,
+          isInputFocused: $isInputFocused,
           onSend: { viewModel.sendMessage() },
-          onVoiceTapped: { Task { await viewModel.startVoiceMode() } }
+          onVoiceTapped: {
+            isInputFocused = false
+            Task { await viewModel.startVoiceMode() }
+          }
         )
       }
 
