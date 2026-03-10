@@ -9,7 +9,6 @@ struct VoiceModeOverlay: View {
         .ignoresSafeArea()
 
       VStack(spacing: 24) {
-        // Status pills
         HStack(spacing: 8) {
           StatusPill(color: geminiStatusColor, text: geminiStatusText)
         }
@@ -17,43 +16,40 @@ struct VoiceModeOverlay: View {
 
         Spacer()
 
-        // Voice visualization
         VoiceOrb(isSpeaking: viewModel.isModelSpeaking)
 
-        // Transcripts
         VStack(spacing: 8) {
           if !viewModel.userTranscript.isEmpty {
             Text(viewModel.userTranscript)
-              .font(.system(size: 15))
-              .foregroundColor(.white.opacity(0.7))
+              .font(.subheadline)
+              .foregroundStyle(.white.opacity(0.7))
               .multilineTextAlignment(.center)
           }
           if !viewModel.aiTranscript.isEmpty {
             Text(viewModel.aiTranscript)
-              .font(.system(size: 17, weight: .medium))
-              .foregroundColor(.white)
+              .font(.body.weight(.medium))
+              .foregroundStyle(.white)
               .multilineTextAlignment(.center)
           }
         }
         .padding(.horizontal, 32)
         .frame(minHeight: 60)
+        .accessibilityElement(children: .combine)
 
-        // Tool call status
         ToolCallStatusView(status: viewModel.toolCallStatus)
 
         Spacer()
 
-        // End button
         Button {
           viewModel.stopVoiceMode()
         } label: {
           Image(systemName: "xmark")
-            .font(.system(size: 20, weight: .bold))
-            .foregroundColor(.white)
+            .font(.title3.bold())
+            .foregroundStyle(.white)
             .frame(width: 64, height: 64)
-            .background(Color.red)
-            .clipShape(Circle())
+            .background(.red, in: Circle())
         }
+        .accessibilityLabel("End voice mode")
         .padding(.bottom, 40)
       }
     }
@@ -70,32 +66,30 @@ struct VoiceOrb: View {
 
   var body: some View {
     ZStack {
-      // Outer ring
       Circle()
-        .stroke(Color.white.opacity(0.15), lineWidth: 2)
+        .stroke(.white.opacity(0.15), lineWidth: 2)
         .frame(width: 140, height: 140)
         .scaleEffect(scale)
 
-      // Middle ring
       Circle()
-        .stroke(Color.white.opacity(0.25), lineWidth: 2)
+        .stroke(.white.opacity(0.25), lineWidth: 2)
         .frame(width: 110, height: 110)
         .scaleEffect(innerScale)
 
-      // Center orb
       Circle()
-        .fill(Color.white.opacity(isSpeaking ? 0.3 : 0.15))
+        .fill(.white.opacity(isSpeaking ? 0.3 : 0.15))
         .frame(width: 80, height: 80)
 
-      // Speaking bars (centered in orb)
       if isSpeaking {
         SpeakingIndicator()
       } else {
         Image(systemName: "waveform")
-          .font(.system(size: 24))
-          .foregroundColor(.white.opacity(0.5))
+          .font(.title2)
+          .foregroundStyle(.white.opacity(0.5))
       }
     }
+    .accessibilityElement(children: .ignore)
+    .accessibilityLabel(isSpeaking ? "AI is speaking" : "Listening")
     .onChange(of: isSpeaking) { speaking in
       withAnimation(speaking ? .easeInOut(duration: 1.0).repeatForever(autoreverses: true) : .easeOut(duration: 0.3)) {
         scale = speaking ? 1.15 : 1.0

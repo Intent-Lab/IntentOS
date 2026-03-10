@@ -19,13 +19,15 @@ struct MessageBubbleView: View {
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 2)
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel(accessibilityDescription)
   }
 
   private var textBubble: some View {
     HStack(alignment: .bottom, spacing: 4) {
       Text(message.text.isEmpty && message.status == .streaming ? " " : message.text)
-        .font(.system(size: 16))
-        .foregroundColor(message.role == .user ? .white : .primary)
+        .font(.body)
+        .foregroundStyle(message.role == .user ? .white : .primary)
 
       if message.status == .streaming {
         TypingCursor()
@@ -33,42 +35,46 @@ struct MessageBubbleView: View {
     }
     .padding(.horizontal, 14)
     .padding(.vertical, 10)
-    .background(bubbleBackground)
-    .cornerRadius(18)
+    .background(bubbleBackground, in: RoundedRectangle(cornerRadius: 18))
   }
 
   private var toolCallBubble: some View {
     HStack(spacing: 8) {
       if message.status == .streaming {
         ProgressView()
-          .scaleEffect(0.7)
+          .controlSize(.small)
           .tint(.secondary)
       } else if case .error = message.status {
         Image(systemName: "exclamationmark.circle.fill")
-          .foregroundColor(.red)
-          .font(.system(size: 13))
+          .foregroundStyle(.red)
+          .font(.caption)
       } else {
         Image(systemName: "checkmark.circle.fill")
-          .foregroundColor(.green)
-          .font(.system(size: 13))
+          .foregroundStyle(.green)
+          .font(.caption)
       }
       Text(message.text)
-        .font(.system(size: 13, weight: .medium))
-        .foregroundColor(.secondary)
+        .font(.caption)
+        .fontWeight(.medium)
+        .foregroundStyle(.secondary)
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 6)
-    .background(Color(.systemGray5))
-    .cornerRadius(12)
+    .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 12))
     .frame(maxWidth: .infinity, alignment: .center)
   }
 
   private var bubbleBackground: Color {
     switch message.role {
     case .user: return Color("appPrimaryColor")
-    case .assistant: return Color(.systemGray6)
-    case .toolCall: return Color(.systemGray5)
+    case .assistant: return Color(.secondarySystemGroupedBackground)
+    case .toolCall: return Color(.tertiarySystemFill)
     }
+  }
+
+  private var accessibilityDescription: String {
+    let role = message.role == .user ? "You" : "Assistant"
+    return "\(role): \(message.text)"
   }
 }
 
@@ -76,8 +82,8 @@ struct TypingCursor: View {
   @State private var visible = true
 
   var body: some View {
-    Rectangle()
-      .fill(Color.secondary)
+    RoundedRectangle(cornerRadius: 1)
+      .fill(.secondary)
       .frame(width: 2, height: 16)
       .opacity(visible ? 1 : 0)
       .onAppear {
@@ -85,5 +91,6 @@ struct TypingCursor: View {
           visible = false
         }
       }
+      .accessibilityHidden(true)
   }
 }

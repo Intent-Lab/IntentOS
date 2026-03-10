@@ -18,6 +18,7 @@ struct ChatMessageList: View {
           .padding(.vertical, 12)
         }
       }
+      .scrollDismissesKeyboard(.interactively)
       .onChange(of: messages.count) { _ in
         if let lastId = messages.last?.id {
           withAnimation(.easeOut(duration: 0.2)) {
@@ -33,13 +34,15 @@ struct ChatMessageList: View {
       Spacer()
       Image(systemName: "bubble.left.and.bubble.right")
         .font(.system(size: 48))
-        .foregroundColor(Color(.systemGray4))
+        .foregroundStyle(.tertiary)
       Text("How can I help?")
-        .font(.system(size: 18, weight: .medium))
-        .foregroundColor(.secondary)
+        .font(.title3)
+        .foregroundStyle(.secondary)
       Spacer()
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .padding(.top, 120)
+    .accessibilityElement(children: .combine)
+    .accessibilityLabel("Chat is empty. Type a message or start voice mode.")
   }
 }

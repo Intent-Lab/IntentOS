@@ -37,7 +37,6 @@ struct ChatView: View {
         )
       }
 
-      // Voice mode overlay
       if viewModel.isVoiceModeActive {
         VoiceModeOverlay(viewModel: viewModel)
           .animation(.easeInOut(duration: 0.3), value: viewModel.isVoiceModeActive)
@@ -54,10 +53,12 @@ struct ChatView: View {
           showGlassesStream = false
         } label: {
           Image(systemName: "xmark.circle.fill")
-            .font(.system(size: 28))
-            .foregroundColor(.white)
+            .font(.title2)
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(.white)
             .shadow(radius: 4)
         }
+        .accessibilityLabel("Close glasses streaming")
         .padding(.leading, 16)
         .padding(.top, 16)
       }

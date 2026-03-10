@@ -8,33 +8,32 @@ struct ChatInputBar: View {
 
   var body: some View {
     HStack(spacing: 12) {
-      // Voice mode button
       Button(action: onVoiceTapped) {
         Image(systemName: "waveform.circle.fill")
-          .font(.system(size: 32))
-          .foregroundColor(Color("appPrimaryColor"))
+          .font(.title)
+          .foregroundStyle(Color("appPrimaryColor"))
       }
+      .accessibilityLabel("Start voice mode")
 
-      // Text field
       TextField("Message...", text: $text, axis: .vertical)
+        .font(.body)
         .textFieldStyle(.plain)
         .lineLimit(1...5)
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color(.systemGray6))
-        .cornerRadius(20)
+        .background(.fill.quaternary, in: RoundedRectangle(cornerRadius: 20))
 
-      // Send button
       Button(action: onSend) {
         Image(systemName: "arrow.up.circle.fill")
-          .font(.system(size: 32))
-          .foregroundColor(canSend ? Color("appPrimaryColor") : Color(.systemGray4))
+          .font(.title)
+          .foregroundStyle(canSend ? Color("appPrimaryColor") : Color(.tertiaryLabel))
       }
       .disabled(!canSend)
+      .accessibilityLabel("Send message")
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 8)
-    .background(Color(.systemBackground))
+    .background(.background)
   }
 
   private var canSend: Bool {

@@ -8,27 +8,29 @@ struct ChatTopBar: View {
   var body: some View {
     HStack {
       Text("Matcha")
-        .font(.system(size: 20, weight: .bold))
+        .font(.headline)
 
       Spacer()
 
       if showGlassesButton {
         Button(action: onGlassesTapped) {
           Image(systemName: "eyeglasses")
-            .font(.system(size: 18))
-            .foregroundColor(.primary)
+            .font(.body)
+            .foregroundStyle(.primary)
         }
+        .accessibilityLabel("Open glasses streaming")
         .padding(.trailing, 8)
       }
 
       Button(action: onSettingsTapped) {
         Image(systemName: "gearshape")
-          .font(.system(size: 18))
-          .foregroundColor(.primary)
+          .font(.body)
+          .foregroundStyle(.primary)
       }
+      .accessibilityLabel("Settings")
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 12)
-    .background(Color(.systemBackground))
+    .background(.background)
   }
 }
