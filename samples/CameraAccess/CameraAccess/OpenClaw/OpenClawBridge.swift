@@ -68,6 +68,16 @@ class OpenClawBridge: ObservableObject {
     return "agent:main:glass:\(ts)"
   }
 
+  /// Inject prior conversation context (e.g. voice transcripts) into history
+  /// so subsequent messages have full context from other interaction modes.
+  func injectContext(_ messages: [[String: String]]) {
+    conversationHistory.insert(contentsOf: messages, at: 0)
+    if conversationHistory.count > maxHistoryTurns * 2 {
+      conversationHistory = Array(conversationHistory.suffix(maxHistoryTurns * 2))
+    }
+    NSLog("[OpenClaw] Injected %d context messages (total: %d)", messages.count, conversationHistory.count)
+  }
+
   // MARK: - Agent Chat (session continuity via x-openclaw-session-key header)
 
   func delegateTask(

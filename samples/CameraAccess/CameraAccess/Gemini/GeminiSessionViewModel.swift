@@ -16,6 +16,7 @@ class GeminiSessionViewModel: ObservableObject {
   private var stateObservation: Task<Void, Never>?
 
   var streamingMode: StreamingMode = .glasses
+  var conversationContext: String?
 
   func startSession() async {
     guard !isGeminiActive else { return }
@@ -63,8 +64,16 @@ class GeminiSessionViewModel: ObservableObject {
       }
     }
 
-    // Start the session
-    let config = VoiceSessionConfig.geminiDefault
+    // Build config with conversation context if available
+    var instruction = GeminiConfig.systemInstruction
+    if let ctx = conversationContext, !ctx.isEmpty {
+      instruction += "\n\n[Recent conversation for context -- the user may refer to this]\n\(ctx)"
+    }
+    let config = VoiceSessionConfig(
+      systemInstruction: instruction,
+      toolDeclarations: ToolDeclarations.allDeclarations(),
+      responseModalities: ["AUDIO"]
+    )
     let success = await coord.startSession(config: config, streamingMode: streamingMode)
 
     if !success {

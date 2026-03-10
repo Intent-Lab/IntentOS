@@ -80,6 +80,19 @@ class ChatViewModel: ObservableObject {
 
     geminiSessionVM.streamingMode = streamingMode
 
+    // Bridge text conversation context into Gemini's system instruction
+    let recentMessages = messages.suffix(10)
+    let contextLines = recentMessages.compactMap { msg -> String? in
+      let text = msg.text.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !text.isEmpty else { return nil }
+      switch msg.role {
+      case .user: return "User: \(text)"
+      case .assistant: return "Assistant: \(text)"
+      case .toolCall: return nil
+      }
+    }
+    geminiSessionVM.conversationContext = contextLines.isEmpty ? nil : contextLines.joined(separator: "\n")
+
     voiceObservation = Task { [weak self] in
       while !Task.isCancelled {
         try? await Task.sleep(nanoseconds: 100_000_000)
@@ -136,6 +149,17 @@ class ChatViewModel: ObservableObject {
     geminiSessionVM.stopSession()
     voiceObservation?.cancel()
     voiceObservation = nil
+
+    // Bridge voice transcripts into OpenClaw's conversation history
+    let contextMessages = voiceTranscripts.compactMap { transcript -> [String: String]? in
+      let text = transcript.text.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !text.isEmpty else { return nil }
+      let role = transcript.role == .user ? "user" : "assistant"
+      return ["role": role, "content": text]
+    }
+    if !contextMessages.isEmpty {
+      openClawBridge.injectContext(contextMessages)
+    }
 
     for transcript in voiceTranscripts {
       if !transcript.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
