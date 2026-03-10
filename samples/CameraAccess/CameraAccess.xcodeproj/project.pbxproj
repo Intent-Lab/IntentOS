@@ -12,7 +12,6 @@
 		8FD96B7F2E6F0A9800F56AB1 /* CameraAccessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD96B792E6F0A9800F56AB1 /* CameraAccessApp.swift */; };
 		8FD96B812E6F0A9800F56AB1 /* HomeScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD96B722E6F0A9800F56AB1 /* HomeScreenView.swift */; };
 		8FD96B872E6F0A9800F56AB1 /* StreamSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD96B6F2E6F0A9800F56AB1 /* StreamSessionViewModel.swift */; };
-		9DD6CC002F4A000000ED7098 /* VideoDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD6CBFF2F4A000000ED7098 /* VideoDecoder.swift */; };
 		8FD96B882E6F0A9800F56AB1 /* StreamSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD96B752E6F0A9800F56AB1 /* StreamSessionView.swift */; };
 		8FD96B8A2E6F0A9800F56AB1 /* PhotoPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD96B742E6F0A9800F56AB1 /* PhotoPreviewView.swift */; };
 		8FD96B8D2E6F0A9800F56AB1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8FD96B772E6F0A9800F56AB1 /* Assets.xcassets */; };
@@ -27,6 +26,21 @@
 		8FFD60542E849D0D0035E446 /* RegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FFD60532E849D0D0035E446 /* RegistrationView.swift */; };
 		8FFD60602E84A2F70035E446 /* MainAppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FFD605F2E84A2F70035E446 /* MainAppView.swift */; };
 		8FFD60612E84A2F70035E446 /* DebugMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FFD605E2E84A2F70035E446 /* DebugMenuView.swift */; };
+		9DBB18A52F5FFE240019775B /* ChatInputBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB189C2F5FFE240019775B /* ChatInputBar.swift */; };
+		9DBB18A62F5FFE240019775B /* MessageBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18A02F5FFE240019775B /* MessageBubbleView.swift */; };
+		9DBB18A72F5FFE240019775B /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18A32F5FFE240019775B /* ChatViewModel.swift */; };
+		9DBB18A82F5FFE240019775B /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB189F2F5FFE240019775B /* ChatView.swift */; };
+		9DBB18A92F5FFE240019775B /* ChatMessageList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB189D2F5FFE240019775B /* ChatMessageList.swift */; };
+		9DBB18AA2F5FFE240019775B /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB189A2F5FFE240019775B /* ChatMessage.swift */; };
+		9DBB18AB2F5FFE240019775B /* VoiceModeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18A12F5FFE240019775B /* VoiceModeOverlay.swift */; };
+		9DBB18AC2F5FFE240019775B /* ChatTopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB189E2F5FFE240019775B /* ChatTopBar.swift */; };
+		9DBB18AE2F5FFE5D0019775B /* GeminiChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18AD2F5FFE5D0019775B /* GeminiChatService.swift */; };
+		9DBB18B92F5FFF370019775B /* AgentProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18B52F5FFF370019775B /* AgentProtocol.swift */; };
+		9DBB18BA2F5FFF370019775B /* VoiceAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18B12F5FFF370019775B /* VoiceAgent.swift */; };
+		9DBB18BB2F5FFF370019775B /* GeminiLiveProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18B32F5FFF370019775B /* GeminiLiveProvider.swift */; };
+		9DBB18BC2F5FFF370019775B /* VoiceModelProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18B62F5FFF370019775B /* VoiceModelProvider.swift */; };
+		9DBB18BD2F5FFF370019775B /* ActionAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18AF2F5FFF370019775B /* ActionAgent.swift */; };
+		9DBB18BE2F5FFF370019775B /* AgentCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18B02F5FFF370019775B /* AgentCoordinator.swift */; };
 		9DD6CAAF2F3C426600ED7098 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD6CAAD2F3C426600ED7098 /* Secrets.swift */; };
 		9DD6CAFE2F3C62DA00ED7098 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 9DD6CAFD2F3C62DA00ED7098 /* WebRTC */; };
 		9DD6CB052F3C637D00ED7098 /* WebRTCSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD6CB032F3C637D00ED7098 /* WebRTCSessionViewModel.swift */; };
@@ -36,6 +50,7 @@
 		9DD6CB092F3C637D00ED7098 /* WebRTCClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD6CB012F3C637D00ED7098 /* WebRTCClient.swift */; };
 		9DD6CB0C2F3C648800ED7098 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 9DD6CB0B2F3C648800ED7098 /* WebRTC */; };
 		9DD6CB0E2F3C64F400ED7098 /* WebRTCOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD6CB0D2F3C64F400ED7098 /* WebRTCOverlayView.swift */; };
+		9DD6CC002F4A000000ED7098 /* VideoDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD6CBFF2F4A000000ED7098 /* VideoDecoder.swift */; };
 		9DD894B22F4047630090B9B9 /* SettingsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD894AF2F4047630090B9B9 /* SettingsManager.swift */; };
 		9DD894B32F4047630090B9B9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD894B02F4047630090B9B9 /* SettingsView.swift */; };
 		9DD895962F405E0E0090B9B9 /* RTCVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DD895952F405E0E0090B9B9 /* RTCVideoView.swift */; };
@@ -81,7 +96,6 @@
 		8F2D237F2E856711002D0588 /* DebugMenuViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugMenuViewModel.swift; sourceTree = "<group>"; };
 		8F8F00772E8ACB4500A4BDAF /* WearablesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WearablesViewModel.swift; sourceTree = "<group>"; };
 		8FD96B6F2E6F0A9800F56AB1 /* StreamSessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSessionViewModel.swift; sourceTree = "<group>"; };
-		9DD6CBFF2F4A000000ED7098 /* VideoDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDecoder.swift; sourceTree = "<group>"; };
 		8FD96B722E6F0A9800F56AB1 /* HomeScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreenView.swift; sourceTree = "<group>"; };
 		8FD96B742E6F0A9800F56AB1 /* PhotoPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoPreviewView.swift; sourceTree = "<group>"; };
 		8FD96B752E6F0A9800F56AB1 /* StreamSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamSessionView.swift; sourceTree = "<group>"; };
@@ -98,6 +112,21 @@
 		8FFD60532E849D0D0035E446 /* RegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationView.swift; sourceTree = "<group>"; };
 		8FFD605E2E84A2F70035E446 /* DebugMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugMenuView.swift; sourceTree = "<group>"; };
 		8FFD605F2E84A2F70035E446 /* MainAppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainAppView.swift; sourceTree = "<group>"; };
+		9DBB189A2F5FFE240019775B /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
+		9DBB189C2F5FFE240019775B /* ChatInputBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatInputBar.swift; sourceTree = "<group>"; };
+		9DBB189D2F5FFE240019775B /* ChatMessageList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessageList.swift; sourceTree = "<group>"; };
+		9DBB189E2F5FFE240019775B /* ChatTopBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatTopBar.swift; sourceTree = "<group>"; };
+		9DBB189F2F5FFE240019775B /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
+		9DBB18A02F5FFE240019775B /* MessageBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageBubbleView.swift; sourceTree = "<group>"; };
+		9DBB18A12F5FFE240019775B /* VoiceModeOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceModeOverlay.swift; sourceTree = "<group>"; };
+		9DBB18A32F5FFE240019775B /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
+		9DBB18AD2F5FFE5D0019775B /* GeminiChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiChatService.swift; sourceTree = "<group>"; };
+		9DBB18AF2F5FFF370019775B /* ActionAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionAgent.swift; sourceTree = "<group>"; };
+		9DBB18B02F5FFF370019775B /* AgentCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentCoordinator.swift; sourceTree = "<group>"; };
+		9DBB18B12F5FFF370019775B /* VoiceAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAgent.swift; sourceTree = "<group>"; };
+		9DBB18B32F5FFF370019775B /* GeminiLiveProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiLiveProvider.swift; sourceTree = "<group>"; };
+		9DBB18B52F5FFF370019775B /* AgentProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentProtocol.swift; sourceTree = "<group>"; };
+		9DBB18B62F5FFF370019775B /* VoiceModelProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceModelProvider.swift; sourceTree = "<group>"; };
 		9DD6CAAD2F3C426600ED7098 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
 		9DD6CAAE2F3C426600ED7098 /* Secrets.swift.example */ = {isa = PBXFileReference; lastKnownFileType = text; path = Secrets.swift.example; sourceTree = "<group>"; };
 		9DD6CAFF2F3C637D00ED7098 /* CustomVideoCapturer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomVideoCapturer.swift; sourceTree = "<group>"; };
@@ -106,6 +135,7 @@
 		9DD6CB022F3C637D00ED7098 /* WebRTCConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCConfig.swift; sourceTree = "<group>"; };
 		9DD6CB032F3C637D00ED7098 /* WebRTCSessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCSessionViewModel.swift; sourceTree = "<group>"; };
 		9DD6CB0D2F3C64F400ED7098 /* WebRTCOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCOverlayView.swift; sourceTree = "<group>"; };
+		9DD6CBFF2F4A000000ED7098 /* VideoDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDecoder.swift; sourceTree = "<group>"; };
 		9DD894AF2F4047630090B9B9 /* SettingsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsManager.swift; sourceTree = "<group>"; };
 		9DD894B02F4047630090B9B9 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9DD895942F405E0E0090B9B9 /* PiPVideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PiPVideoView.swift; sourceTree = "<group>"; };
@@ -203,6 +233,8 @@
 		8FD96B7D2E6F0A9800F56AB1 /* CameraAccess */ = {
 			isa = PBXGroup;
 			children = (
+				9DBB18B82F5FFF370019775B /* Core */,
+				9DBB18A42F5FFE240019775B /* Chat */,
 				9DD894B12F4047630090B9B9 /* Settings */,
 				9DD6CB042F3C637D00ED7098 /* WebRTC */,
 				9DD6CAAD2F3C426600ED7098 /* Secrets.swift */,
@@ -242,6 +274,74 @@
 			path = MockDeviceKit;
 			sourceTree = "<group>";
 		};
+		9DBB189B2F5FFE240019775B /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				9DBB189A2F5FFE240019775B /* ChatMessage.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		9DBB18A22F5FFE240019775B /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				9DBB189C2F5FFE240019775B /* ChatInputBar.swift */,
+				9DBB189D2F5FFE240019775B /* ChatMessageList.swift */,
+				9DBB189E2F5FFE240019775B /* ChatTopBar.swift */,
+				9DBB189F2F5FFE240019775B /* ChatView.swift */,
+				9DBB18A02F5FFE240019775B /* MessageBubbleView.swift */,
+				9DBB18A12F5FFE240019775B /* VoiceModeOverlay.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		9DBB18A42F5FFE240019775B /* Chat */ = {
+			isa = PBXGroup;
+			children = (
+				9DBB189B2F5FFE240019775B /* Models */,
+				9DBB18A22F5FFE240019775B /* Views */,
+				9DBB18A32F5FFE240019775B /* ChatViewModel.swift */,
+			);
+			path = Chat;
+			sourceTree = "<group>";
+		};
+		9DBB18B22F5FFF370019775B /* Agents */ = {
+			isa = PBXGroup;
+			children = (
+				9DBB18AF2F5FFF370019775B /* ActionAgent.swift */,
+				9DBB18B02F5FFF370019775B /* AgentCoordinator.swift */,
+				9DBB18B12F5FFF370019775B /* VoiceAgent.swift */,
+			);
+			path = Agents;
+			sourceTree = "<group>";
+		};
+		9DBB18B42F5FFF370019775B /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				9DBB18B32F5FFF370019775B /* GeminiLiveProvider.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		9DBB18B72F5FFF370019775B /* Protocols */ = {
+			isa = PBXGroup;
+			children = (
+				9DBB18B52F5FFF370019775B /* AgentProtocol.swift */,
+				9DBB18B62F5FFF370019775B /* VoiceModelProvider.swift */,
+			);
+			path = Protocols;
+			sourceTree = "<group>";
+		};
+		9DBB18B82F5FFF370019775B /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				9DBB18B22F5FFF370019775B /* Agents */,
+				9DBB18B42F5FFF370019775B /* Models */,
+				9DBB18B72F5FFF370019775B /* Protocols */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
 		9DD6CB042F3C637D00ED7098 /* WebRTC */ = {
 			isa = PBXGroup;
 			children = (
@@ -269,6 +369,7 @@
 		A1B2C3D42F0A000300000001 /* Gemini */ = {
 			isa = PBXGroup;
 			children = (
+				9DBB18AD2F5FFE5D0019775B /* GeminiChatService.swift */,
 				A1B2C3D42F0A000100000003 /* AudioManager.swift */,
 				A1B2C3D42F0A000100000001 /* GeminiConfig.swift */,
 				A1B2C3D42F0A000100000002 /* GeminiLiveService.swift */,
@@ -403,9 +504,18 @@
 				8F2D23802E856711002D0588 /* DebugMenuViewModel.swift in Sources */,
 				8FFD60542E849D0D0035E446 /* RegistrationView.swift in Sources */,
 				9DD6CAAF2F3C426600ED7098 /* Secrets.swift in Sources */,
+				9DBB18A52F5FFE240019775B /* ChatInputBar.swift in Sources */,
+				9DBB18A62F5FFE240019775B /* MessageBubbleView.swift in Sources */,
+				9DBB18A72F5FFE240019775B /* ChatViewModel.swift in Sources */,
+				9DBB18A82F5FFE240019775B /* ChatView.swift in Sources */,
+				9DBB18A92F5FFE240019775B /* ChatMessageList.swift in Sources */,
+				9DBB18AA2F5FFE240019775B /* ChatMessage.swift in Sources */,
+				9DBB18AB2F5FFE240019775B /* VoiceModeOverlay.swift in Sources */,
+				9DBB18AC2F5FFE240019775B /* ChatTopBar.swift in Sources */,
 				8FFD60342E8434070035E446 /* MediaPickerView.swift in Sources */,
 				9DD6CB0E2F3C64F400ED7098 /* WebRTCOverlayView.swift in Sources */,
 				8FFD60352E8434070035E446 /* StatusText.swift in Sources */,
+				9DBB18AE2F5FFE5D0019775B /* GeminiChatService.swift in Sources */,
 				8FFD602C2E8433E20035E446 /* MockDeviceKitViewModel.swift in Sources */,
 				8FFD602D2E8433E20035E446 /* MockDeviceViewModel.swift in Sources */,
 				E6DA451D2E79A63100E3F688 /* MockDeviceCardView.swift in Sources */,
@@ -424,6 +534,12 @@
 				8FD96B8A2E6F0A9800F56AB1 /* PhotoPreviewView.swift in Sources */,
 				E66D30242E7DA71900470B48 /* MockDeviceKitButton.swift in Sources */,
 				9DD895962F405E0E0090B9B9 /* RTCVideoView.swift in Sources */,
+				9DBB18B92F5FFF370019775B /* AgentProtocol.swift in Sources */,
+				9DBB18BA2F5FFF370019775B /* VoiceAgent.swift in Sources */,
+				9DBB18BB2F5FFF370019775B /* GeminiLiveProvider.swift in Sources */,
+				9DBB18BC2F5FFF370019775B /* VoiceModelProvider.swift in Sources */,
+				9DBB18BD2F5FFF370019775B /* ActionAgent.swift in Sources */,
+				9DBB18BE2F5FFF370019775B /* AgentCoordinator.swift in Sources */,
 				9DD895972F405E0E0090B9B9 /* PiPVideoView.swift in Sources */,
 				8F8F00782E8ACB4600A4BDAF /* WearablesViewModel.swift in Sources */,
 				E6A188482EB918740097D0E1 /* StreamView.swift in Sources */,
@@ -479,7 +595,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.xiaoanliu.VisionClaw;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xiaoanliu.Matcha;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
@@ -507,7 +623,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.xiaoanliu.VisionClaw;
+				PRODUCT_BUNDLE_IDENTIFIER = com.xiaoanliu.Matcha;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 5.0;
