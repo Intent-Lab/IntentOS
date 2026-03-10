@@ -16,7 +16,8 @@ class AgentBridge: ObservableObject {
   private let pingSession: URLSession
   private var sessionKey: String
   private var conversationHistory: [[String: String]] = []
-  private let maxHistoryTurns = 10
+  private let maxHistoryTurns = 3
+  private static let sessionMaxAge: TimeInterval = 86400 // 24 hours
 
   init() {
     let config = URLSessionConfiguration.default
@@ -27,7 +28,19 @@ class AgentBridge: ObservableObject {
     pingConfig.timeoutIntervalForRequest = 5
     self.pingSession = URLSession(configuration: pingConfig)
 
-    self.sessionKey = AgentBridge.newSessionKey()
+    // Reuse persisted session key if < 24 hours old
+    let settings = SettingsManager.shared
+    let age = Date().timeIntervalSince1970 - settings.agentSessionCreatedAt
+    if let existingKey = settings.agentSessionKey, age < AgentBridge.sessionMaxAge {
+      self.sessionKey = existingKey
+      NSLog("[Agent] Resumed session: %@", existingKey)
+    } else {
+      let newKey = AgentBridge.newSessionKey()
+      self.sessionKey = newKey
+      settings.agentSessionKey = newKey
+      settings.agentSessionCreatedAt = Date().timeIntervalSince1970
+      NSLog("[Agent] New session: %@", newKey)
+    }
   }
 
   func checkConnection() async {
@@ -58,9 +71,13 @@ class AgentBridge: ObservableObject {
   }
 
   func resetSession() {
-    sessionKey = AgentBridge.newSessionKey()
+    let newKey = AgentBridge.newSessionKey()
+    sessionKey = newKey
     conversationHistory = []
-    NSLog("[Agent] New session: %@", sessionKey)
+    let settings = SettingsManager.shared
+    settings.agentSessionKey = newKey
+    settings.agentSessionCreatedAt = Date().timeIntervalSince1970
+    NSLog("[Agent] Reset session: %@", newKey)
   }
 
   private static func newSessionKey() -> String {

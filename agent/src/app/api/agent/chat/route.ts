@@ -5,9 +5,18 @@ import {
   updateAgentSession,
 } from "@/lib/sandbox";
 import { log } from "@/lib/logger";
+import {
+  appendMessage,
+  getMessageCount,
+  getMessages,
+  compactMessages,
+} from "@/lib/session-store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
+
+const COMPACTION_THRESHOLD = 30;
+const COMPACTION_KEEP_RECENT = 10;
 
 interface ChatMessage {
   role: string;
@@ -66,6 +75,9 @@ export async function POST(request: NextRequest) {
 
     await log("request", { prompt: prompt.slice(0, 500), messageCount: body.messages.length }, sessionKey);
 
+    // Persist user message to Redis
+    await appendMessage(sessionKey, { role: "user", content: prompt });
+
     // Build system prompt from earlier system messages (if any)
     const systemMessages = body.messages
       .filter((m: ChatMessage) => m.role === "system")
@@ -74,17 +86,32 @@ export async function POST(request: NextRequest) {
       systemMessages.length > 0 ? systemMessages.join("\n\n") : undefined;
 
     // Get or create sandbox, run agent
-    const { sandbox, agentSessionId } = await getOrCreateSandbox(sessionKey);
+    const handle = await getOrCreateSandbox(sessionKey);
     const result = await runAgent(
-      sandbox,
+      handle,
       prompt,
       systemPrompt,
-      agentSessionId
+      handle.agentSessionId,
+      sessionKey
     );
 
     // Store agent session ID for multi-turn resume
     if (result.sessionId) {
-      updateAgentSession(sessionKey, result.sessionId);
+      await updateAgentSession(sessionKey, result.sessionId);
+    }
+
+    // Persist assistant response to Redis
+    await appendMessage(sessionKey, {
+      role: "assistant",
+      content: result.result,
+      costUsd: result.costUsd ?? undefined,
+      durationMs: result.durationMs ?? undefined,
+    });
+
+    // Check if compaction is needed
+    const msgCount = await getMessageCount(sessionKey);
+    if (msgCount > COMPACTION_THRESHOLD) {
+      await tryCompact(sessionKey, msgCount);
     }
 
     await log("response", {
@@ -124,5 +151,37 @@ export async function POST(request: NextRequest) {
       { error: `Agent error: ${message}` },
       { status: 502 }
     );
+  }
+}
+
+/**
+ * Compact conversation history when it exceeds threshold.
+ * Summarizes older messages into a single system message, keeps recent ones.
+ */
+async function tryCompact(sessionKey: string, totalCount: number): Promise<void> {
+  try {
+    const allMessages = await getMessages(sessionKey);
+    if (allMessages.length <= COMPACTION_THRESHOLD) return;
+
+    const oldMessages = allMessages.slice(0, allMessages.length - COMPACTION_KEEP_RECENT);
+    const recentMessages = allMessages.slice(allMessages.length - COMPACTION_KEEP_RECENT);
+
+    // Build a simple summary of old messages (no extra LLM call for now)
+    const summaryLines = oldMessages.map((m) => {
+      if (m.role === "system") return m.content;
+      const label = m.role === "user" ? "User" : "Assistant";
+      // Truncate long messages in summary
+      const content = m.content.length > 300 ? m.content.slice(0, 300) + "..." : m.content;
+      return `${label}: ${content}`;
+    });
+    const summary = summaryLines.join("\n");
+
+    await compactMessages(sessionKey, summary, recentMessages);
+    console.log(
+      `[Agent] Compacted session ${sessionKey}: ${totalCount} -> ${COMPACTION_KEEP_RECENT + 1} messages`
+    );
+  } catch (err) {
+    // Compaction failure is non-critical
+    console.error("[Agent] Compaction failed:", err);
   }
 }

@@ -12,6 +12,8 @@ final class SettingsManager {
     case agentToken
     case webrtcSignalingURL
     case speakerOutputEnabled
+    case agentSessionKey
+    case agentSessionCreatedAt
   }
 
   private init() {}
@@ -54,11 +56,24 @@ final class SettingsManager {
     set { defaults.set(newValue, forKey: Key.speakerOutputEnabled.rawValue) }
   }
 
+  // MARK: - Session Persistence
+
+  var agentSessionKey: String? {
+    get { defaults.string(forKey: Key.agentSessionKey.rawValue) }
+    set { defaults.set(newValue, forKey: Key.agentSessionKey.rawValue) }
+  }
+
+  var agentSessionCreatedAt: TimeInterval {
+    get { defaults.double(forKey: Key.agentSessionCreatedAt.rawValue) }
+    set { defaults.set(newValue, forKey: Key.agentSessionCreatedAt.rawValue) }
+  }
+
   // MARK: - Reset
 
   func resetAll() {
     for key in [Key.geminiAPIKey, .geminiSystemPrompt, .agentBaseURL, .agentToken,
-                .webrtcSignalingURL, .speakerOutputEnabled] {
+                .webrtcSignalingURL, .speakerOutputEnabled,
+                .agentSessionKey, .agentSessionCreatedAt] {
       defaults.removeObject(forKey: key.rawValue)
     }
   }
