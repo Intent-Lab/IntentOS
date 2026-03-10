@@ -53,4 +53,9 @@ enum GeminiConfig {
   static var isConfigured: Bool {
     return apiKey != "YOUR_GEMINI_API_KEY" && !apiKey.isEmpty
   }
+
+  static func textChatURL() -> URL? {
+    guard isConfigured else { return nil }
+    return URL(string: "https://generativelanguage.googleapis.com/v1beta/\(model):streamGenerateContent?alt=sse&key=\(apiKey)")
+  }
 }
