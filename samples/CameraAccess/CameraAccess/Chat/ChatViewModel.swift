@@ -30,11 +30,13 @@ class ChatViewModel: ObservableObject {
   private var lastAITranscript: String = ""
   private var voiceSessionStartIndex: Int = 0
 
-  // Tool call status tracking during voice mode
+  // Tool call status tracking (voice + text mode)
   private var lastToolCallStatus: ToolCallStatus = .idle
   private var activeToolCallBubbleId: String?
   private var activeAgentResultBubbleId: String?
   private var lastAgentStreamingText: String = ""
+  private var renderedStepCount: Int = 0    // how many agentSteps we've rendered as bubbles
+  private var stepBubbleIds: [String] = []  // bubble IDs for each step
 
   // Voice from chat always uses iPhone mode (speaker + mic co-located on phone)
   var streamingMode: StreamingMode = .iPhone
@@ -56,13 +58,45 @@ class ChatViewModel: ObservableObject {
     // Track the placeholder message ID so we only update that specific bubble
     let placeholderId = messages.last!.id
 
-    // Observe streaming text updates from the agent bridge
+    // Observe streaming text + agent steps from the agent bridge
     streamingObservation?.cancel()
+    renderedStepCount = 0
+    stepBubbleIds = []
     streamingObservation = Task { [weak self] in
       var lastText = ""
       while !Task.isCancelled {
         try? await Task.sleep(nanoseconds: 50_000_000) // 50ms polling
         guard let self, !Task.isCancelled else { break }
+
+        // Render agent steps as tool call bubbles (inserted before the result bubble)
+        let steps = self.agentBridge.agentSteps
+        while self.renderedStepCount < steps.count {
+          let step = steps[self.renderedStepCount]
+          let stepBubble = ChatMessage(
+            role: .toolCall,
+            text: step.displayText,
+            status: step.isDone ? .complete : .streaming
+          )
+          // Insert step bubble before the assistant result placeholder
+          if let resultIdx = self.messages.firstIndex(where: { $0.id == placeholderId }) {
+            self.messages.insert(stepBubble, at: resultIdx)
+          } else {
+            self.messages.append(stepBubble)
+          }
+          self.stepBubbleIds.append(stepBubble.id)
+          self.renderedStepCount += 1
+        }
+        // Update existing step bubbles
+        for (i, bubbleId) in self.stepBubbleIds.enumerated() {
+          guard i < steps.count else { break }
+          let step = steps[i]
+          self.updateMessage(id: bubbleId) { msg in
+            msg.text = step.displayText
+            msg.status = step.isDone ? .complete : .streaming
+          }
+        }
+
+        // Update streaming result text
         let current = self.agentBridge.streamingText
         if current != lastText && !current.isEmpty {
           lastText = current
@@ -165,67 +199,69 @@ class ChatViewModel: ObservableObject {
         let newUser = voiceAgent?.userTranscript ?? ""
         let newAI = voiceAgent?.aiTranscript ?? ""
 
-        // --- Tool call status bubbles (agent execution during voice mode) ---
+        // --- Tool call status: render agent steps as bubbles ---
         if currentToolStatus != self.lastToolCallStatus {
-          switch currentToolStatus {
-          case .executing(let toolName):
+          if case .executing = currentToolStatus {
             // Finalize current AI bubble before showing tool status
             if let aiId = self.activeAIBubbleId {
               self.updateMessage(id: aiId) { msg in msg.status = .complete }
               self.activeAIBubbleId = nil
             }
-            // Create a tool call status bubble
-            let bubble = ChatMessage(role: .toolCall, text: "Running: \(toolName)...", status: .streaming)
-            self.messages.append(bubble)
-            self.activeToolCallBubbleId = bubble.id
+            self.renderedStepCount = 0
+            self.stepBubbleIds = []
             self.activeAgentResultBubbleId = nil
             self.lastAgentStreamingText = ""
-
-          case .completed(let toolName):
-            // Update tool call bubble to show completion
-            if let toolId = self.activeToolCallBubbleId {
-              self.updateMessage(id: toolId) { msg in
-                msg.text = "Done: \(toolName)"
-                msg.status = .complete
-              }
+          } else if case .completed = currentToolStatus {
+            // Finalize all step bubbles and agent result
+            for bubbleId in self.stepBubbleIds {
+              self.updateMessage(id: bubbleId) { msg in msg.status = .complete }
             }
-            // Finalize agent result bubble
             if let resultId = self.activeAgentResultBubbleId {
               self.updateMessage(id: resultId) { msg in msg.status = .complete }
             }
-            self.activeToolCallBubbleId = nil
+            self.stepBubbleIds = []
+            self.renderedStepCount = 0
             self.activeAgentResultBubbleId = nil
             self.lastAgentStreamingText = ""
             // Reset AI tracking so Gemini's summary appears as a new bubble
             self.lastAITranscript = ""
             self.activeAIBubbleId = nil
-
-          case .failed(let toolName, let error):
-            if let toolId = self.activeToolCallBubbleId {
-              self.updateMessage(id: toolId) { msg in
-                msg.text = "Failed: \(toolName) - \(error)"
-                msg.status = .error(error)
-              }
+          } else if case .failed(_, let error) = currentToolStatus {
+            // Mark last step as failed
+            if let lastId = self.stepBubbleIds.last {
+              self.updateMessage(id: lastId) { msg in msg.status = .error(error) }
             }
-            self.activeToolCallBubbleId = nil
+            self.stepBubbleIds = []
+            self.renderedStepCount = 0
             self.activeAgentResultBubbleId = nil
             self.lastAgentStreamingText = ""
-
-          case .cancelled(let toolName):
-            if let toolId = self.activeToolCallBubbleId {
-              self.updateMessage(id: toolId) { msg in
-                msg.text = "Cancelled: \(toolName)"
-                msg.status = .complete
-              }
-            }
-            self.activeToolCallBubbleId = nil
-            self.activeAgentResultBubbleId = nil
-            self.lastAgentStreamingText = ""
-
-          case .idle:
-            break
           }
           self.lastToolCallStatus = currentToolStatus
+        }
+
+        // Render new agent steps as they appear
+        if case .executing = currentToolStatus {
+          let steps = self.agentBridge.agentSteps
+          while self.renderedStepCount < steps.count {
+            let step = steps[self.renderedStepCount]
+            let bubble = ChatMessage(
+              role: .toolCall,
+              text: step.displayText,
+              status: step.isDone ? .complete : .streaming
+            )
+            self.messages.append(bubble)
+            self.stepBubbleIds.append(bubble.id)
+            self.renderedStepCount += 1
+          }
+          // Update existing step bubbles (e.g., when step completes)
+          for (i, bubbleId) in self.stepBubbleIds.enumerated() {
+            guard i < steps.count else { break }
+            let step = steps[i]
+            self.updateMessage(id: bubbleId) { msg in
+              msg.text = step.displayText
+              msg.status = step.isDone ? .complete : .streaming
+            }
+          }
         }
 
         // --- Agent streaming text (show agent output while tool is executing) ---
@@ -331,8 +367,8 @@ class ChatViewModel: ObservableObject {
     if let aiId = activeAIBubbleId {
       updateMessage(id: aiId) { msg in msg.status = .complete }
     }
-    if let toolId = activeToolCallBubbleId {
-      updateMessage(id: toolId) { msg in msg.status = .complete }
+    for bubbleId in stepBubbleIds {
+      updateMessage(id: bubbleId) { msg in msg.status = .complete }
     }
     if let resultId = activeAgentResultBubbleId {
       updateMessage(id: resultId) { msg in msg.status = .complete }
@@ -369,6 +405,8 @@ class ChatViewModel: ObservableObject {
     activeToolCallBubbleId = nil
     activeAgentResultBubbleId = nil
     lastAgentStreamingText = ""
+    renderedStepCount = 0
+    stepBubbleIds = []
   }
 
   func sendVideoFrame(_ image: UIImage) {

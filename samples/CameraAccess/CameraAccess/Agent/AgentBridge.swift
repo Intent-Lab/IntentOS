@@ -7,11 +7,34 @@ enum AgentConnectionState: Equatable {
   case unreachable(String)
 }
 
+/// Represents a step in the agent's execution (for UI status display)
+struct AgentStep: Identifiable, Equatable {
+  let id = UUID().uuidString
+  let type: StepType
+  let label: String
+  var isDone: Bool = false
+  var success: Bool = true
+
+  enum StepType: Equatable {
+    case thinking
+    case tool(String) // tool name
+  }
+
+  /// User-friendly display text
+  var displayText: String {
+    if !isDone {
+      return label
+    }
+    return success ? label : "Failed: \(label)"
+  }
+}
+
 @MainActor
 class AgentBridge: ObservableObject {
   @Published var lastToolCallStatus: ToolCallStatus = .idle
   @Published var connectionState: AgentConnectionState = .notConfigured
   @Published var streamingText: String = ""
+  @Published var agentSteps: [AgentStep] = []
 
   private let session: URLSession
   private let pingSession: URLSession
@@ -208,6 +231,12 @@ class AgentBridge: ObservableObject {
           if let data = dataStr.data(using: .utf8),
              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
              let text = json["text"] as? String {
+            // Mark thinking as done on first token
+            if streamingText.isEmpty {
+              if let idx = agentSteps.firstIndex(where: { $0.type == .thinking && !$0.isDone }) {
+                agentSteps[idx].isDone = true
+              }
+            }
             streamingText += text
           }
 
@@ -215,7 +244,22 @@ class AgentBridge: ObservableObject {
           if let data = dataStr.data(using: .utf8),
              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
              let tool = json["tool"] as? String {
+            let input = json["input"] as? [String: Any]
+            let label = Self.friendlyToolLabel(tool: tool, input: input)
+            agentSteps.append(AgentStep(type: .tool(tool), label: label))
             NSLog("[Agent] Tool: %@", tool)
+          }
+
+        case "tool_done":
+          if let data = dataStr.data(using: .utf8),
+             let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+             let tool = json["tool"] as? String {
+            let success = json["success"] as? Bool ?? true
+            // Find the last in-progress step for this tool and mark done
+            if let idx = agentSteps.lastIndex(where: { $0.type == .tool(tool) && !$0.isDone }) {
+              agentSteps[idx].isDone = true
+              agentSteps[idx].success = success
+            }
           }
 
         case "done":
@@ -299,10 +343,15 @@ class AgentBridge: ObservableObject {
   ) async -> ToolResult {
     lastToolCallStatus = .executing(toolName)
     streamingText = ""
+    agentSteps = [AgentStep(type: .thinking, label: "Thinking...")]
 
     do {
       let content = try await sendDirectOrFallback(prompt: task)
       NSLog("[Agent] Result: %@", String(content.prefix(200)))
+      // Mark thinking as done
+      if let idx = agentSteps.firstIndex(where: { $0.type == .thinking && !$0.isDone }) {
+        agentSteps[idx].isDone = true
+      }
       lastToolCallStatus = .completed(toolName)
       return .success(content)
     } catch {
@@ -338,6 +387,59 @@ class AgentBridge: ObservableObject {
         NSLog("[Agent] Retry failed, falling back to Vercel: %@", error.localizedDescription)
         return try await sendViaVercel(prompt: prompt)
       }
+    }
+  }
+
+  // MARK: - Friendly Labels
+
+  /// Convert tool name + input into a user-friendly status label
+  private static func friendlyToolLabel(tool: String, input: [String: Any]?) -> String {
+    switch tool {
+    case "Bash":
+      if let cmd = input?["command"] as? String {
+        let short = cmd.components(separatedBy: "\n").first ?? cmd
+        let trimmed = short.count > 60 ? String(short.prefix(60)) + "..." : short
+        return "Running: \(trimmed)"
+      }
+      return "Running command..."
+    case "Read":
+      if let path = input?["file_path"] as? String {
+        let file = (path as NSString).lastPathComponent
+        return "Reading \(file)"
+      }
+      return "Reading file..."
+    case "Write":
+      if let path = input?["file_path"] as? String {
+        let file = (path as NSString).lastPathComponent
+        return "Writing \(file)"
+      }
+      return "Writing file..."
+    case "Edit":
+      if let path = input?["file_path"] as? String {
+        let file = (path as NSString).lastPathComponent
+        return "Editing \(file)"
+      }
+      return "Editing file..."
+    case "Glob":
+      if let pattern = input?["pattern"] as? String {
+        return "Searching: \(pattern)"
+      }
+      return "Searching files..."
+    case "Grep":
+      if let pattern = input?["pattern"] as? String {
+        let short = pattern.count > 40 ? String(pattern.prefix(40)) + "..." : pattern
+        return "Searching: \(short)"
+      }
+      return "Searching code..."
+    case "WebSearch":
+      if let query = input?["query"] as? String {
+        return "Searching: \(query)"
+      }
+      return "Web search..."
+    case "WebFetch":
+      return "Fetching web page..."
+    default:
+      return "Running \(tool)..."
     }
   }
 }
