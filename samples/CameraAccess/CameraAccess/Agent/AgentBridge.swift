@@ -451,6 +451,27 @@ class AgentBridge: ObservableObject {
       return "Searching email..."
     case "google_gmail_read":
       return "Reading email..."
+    case "google_drive_search":
+      if let query = input?["query"] as? String {
+        let short = query.count > 40 ? String(query.prefix(40)) + "..." : query
+        return "Searching Drive: \(short)"
+      }
+      return "Searching Drive..."
+    case "google_drive_read":
+      if let name = input?["file_name"] as? String {
+        return "Reading \(name)"
+      }
+      return "Reading Drive file..."
+    case "google_drive_create":
+      if let name = input?["name"] as? String {
+        return "Creating \(name)"
+      }
+      return "Creating Drive file..."
+    case "google_drive_update":
+      if let name = input?["file_name"] as? String {
+        return "Updating \(name)"
+      }
+      return "Updating Drive file..."
     default:
       return "Running \(tool)..."
     }

@@ -181,6 +181,94 @@ const TOOLS = [
       required: ["message_id"],
     },
   },
+  {
+    name: "google_drive_search",
+    description:
+      "Search for files in the user's Google Drive. Returns file ID, name, mimeType, and modifiedTime. Only available if the user has connected their Google account.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Search query (e.g. 'budget report', 'type:spreadsheet meeting notes'). Supports Google Drive search syntax.",
+        },
+        max_results: {
+          type: "number",
+          description: "Maximum number of files to return (default 10, max 50)",
+        },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "google_drive_read",
+    description:
+      "Read the content of a Google Drive file by ID (from google_drive_search results). For Google Docs/Sheets/Slides, exports as plain text. For other files, downloads the raw content (up to 5MB).",
+    input_schema: {
+      type: "object",
+      properties: {
+        file_id: {
+          type: "string",
+          description: "The Google Drive file ID to read",
+        },
+        file_name: {
+          type: "string",
+          description: "File name (for display purposes only)",
+        },
+      },
+      required: ["file_id"],
+    },
+  },
+  {
+    name: "google_drive_create",
+    description:
+      "Create a new file in Google Drive. Can create Google Docs, Sheets, or plain text files. Returns the new file's ID and web link.",
+    input_schema: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description: "File name (e.g. 'Meeting Notes.txt', 'Budget 2026')",
+        },
+        content: {
+          type: "string",
+          description: "Text content to write to the file",
+        },
+        mime_type: {
+          type: "string",
+          description: "MIME type: 'application/vnd.google-apps.document' for Google Doc, 'application/vnd.google-apps.spreadsheet' for Sheet, 'text/plain' for text file. Default: Google Doc.",
+        },
+        folder_id: {
+          type: "string",
+          description: "Optional parent folder ID. If omitted, creates in root.",
+        },
+      },
+      required: ["name", "content"],
+    },
+  },
+  {
+    name: "google_drive_update",
+    description:
+      "Update the content of an existing Google Drive file by ID. For Google Docs, replaces the entire document content. For other files, overwrites the file content.",
+    input_schema: {
+      type: "object",
+      properties: {
+        file_id: {
+          type: "string",
+          description: "The Google Drive file ID to update",
+        },
+        content: {
+          type: "string",
+          description: "New text content for the file",
+        },
+        file_name: {
+          type: "string",
+          description: "File name (for display purposes only)",
+        },
+      },
+      required: ["file_id", "content"],
+    },
+  },
 ];
 
 // --- Per-request Google OAuth token (set before each agent run) ---
@@ -372,6 +460,185 @@ async function executeTool(name, input) {
         return `Error: ${err.message}`;
       }
     }
+    case "google_drive_search": {
+      if (!currentGoogleAccessToken) return "Error: Google account not connected. Ask the user to sign in to Google in the app Settings.";
+      try {
+        const maxResults = Math.min(input.max_results || 10, 50);
+        // Convert simple query to Drive API query format
+        const q = `fullText contains '${input.query.replace(/'/g, "\\'")}'` +
+          " and trashed = false";
+        const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&pageSize=${maxResults}&fields=files(id,name,mimeType,modifiedTime,size,webViewLink)&orderBy=modifiedTime desc`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${currentGoogleAccessToken}` },
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          return `Google Drive API error (${res.status}): ${err.slice(0, 500)}`;
+        }
+        const data = await res.json();
+        const files = (data.files || []).map((f) => ({
+          id: f.id,
+          name: f.name,
+          mimeType: f.mimeType,
+          modifiedTime: f.modifiedTime,
+          size: f.size || null,
+          link: f.webViewLink || "",
+        }));
+        return files.length > 0
+          ? JSON.stringify(files, null, 2)
+          : "No files found matching the query.";
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case "google_drive_read": {
+      if (!currentGoogleAccessToken) return "Error: Google account not connected. Ask the user to sign in to Google in the app Settings.";
+      try {
+        // First get file metadata to determine type
+        const metaRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${input.file_id}?fields=id,name,mimeType,size`,
+          { headers: { Authorization: `Bearer ${currentGoogleAccessToken}` } }
+        );
+        if (!metaRes.ok) {
+          const err = await metaRes.text();
+          return `Google Drive API error (${metaRes.status}): ${err.slice(0, 500)}`;
+        }
+        const meta = await metaRes.json();
+
+        let content;
+        // Google Workspace files need export
+        const googleTypes = {
+          "application/vnd.google-apps.document": "text/plain",
+          "application/vnd.google-apps.spreadsheet": "text/csv",
+          "application/vnd.google-apps.presentation": "text/plain",
+        };
+        if (googleTypes[meta.mimeType]) {
+          const exportUrl = `https://www.googleapis.com/drive/v3/files/${input.file_id}/export?mimeType=${encodeURIComponent(googleTypes[meta.mimeType])}`;
+          const expRes = await fetch(exportUrl, {
+            headers: { Authorization: `Bearer ${currentGoogleAccessToken}` },
+          });
+          if (!expRes.ok) {
+            const err = await expRes.text();
+            return `Export error (${expRes.status}): ${err.slice(0, 500)}`;
+          }
+          content = await expRes.text();
+        } else {
+          // Binary/text files -- download directly
+          const dlRes = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${input.file_id}?alt=media`,
+            { headers: { Authorization: `Bearer ${currentGoogleAccessToken}` } }
+          );
+          if (!dlRes.ok) {
+            const err = await dlRes.text();
+            return `Download error (${dlRes.status}): ${err.slice(0, 500)}`;
+          }
+          content = await dlRes.text();
+        }
+
+        if (content.length > 50000) content = content.slice(0, 50000) + "\n... [truncated]";
+        return JSON.stringify({
+          id: meta.id,
+          name: meta.name,
+          mimeType: meta.mimeType,
+          content,
+        }, null, 2);
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case "google_drive_create": {
+      if (!currentGoogleAccessToken) return "Error: Google account not connected. Ask the user to sign in to Google in the app Settings.";
+      try {
+        const mimeType = input.mime_type || "application/vnd.google-apps.document";
+        const isGoogleDoc = mimeType === "application/vnd.google-apps.document";
+
+        // For Google Docs, upload as text/plain and convert
+        const metadata = { name: input.name, mimeType };
+        if (input.folder_id) {
+          metadata.parents = [input.folder_id];
+        }
+
+        const boundary = "----DriveUpload" + Date.now();
+        const uploadMimeType = isGoogleDoc ? "text/plain" : (mimeType.startsWith("application/vnd.google-apps.") ? "text/plain" : mimeType);
+
+        const body =
+          `--${boundary}\r\n` +
+          `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+          JSON.stringify(metadata) + `\r\n` +
+          `--${boundary}\r\n` +
+          `Content-Type: ${uploadMimeType}\r\n\r\n` +
+          input.content + `\r\n` +
+          `--${boundary}--`;
+
+        const res = await fetch(
+          "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${currentGoogleAccessToken}`,
+              "Content-Type": `multipart/related; boundary=${boundary}`,
+            },
+            body,
+          }
+        );
+        if (!res.ok) {
+          const err = await res.text();
+          return `Google Drive API error (${res.status}): ${err.slice(0, 500)}`;
+        }
+        const file = await res.json();
+        return JSON.stringify({
+          id: file.id,
+          name: file.name,
+          link: file.webViewLink || "",
+          message: `File "${file.name}" created successfully.`,
+        }, null, 2);
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case "google_drive_update": {
+      if (!currentGoogleAccessToken) return "Error: Google account not connected. Ask the user to sign in to Google in the app Settings.";
+      try {
+        // Get current file metadata to determine type
+        const metaRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${input.file_id}?fields=id,name,mimeType`,
+          { headers: { Authorization: `Bearer ${currentGoogleAccessToken}` } }
+        );
+        if (!metaRes.ok) {
+          const err = await metaRes.text();
+          return `Google Drive API error (${metaRes.status}): ${err.slice(0, 500)}`;
+        }
+        const meta = await metaRes.json();
+
+        const uploadMimeType = meta.mimeType.startsWith("application/vnd.google-apps.") ? "text/plain" : meta.mimeType;
+
+        const res = await fetch(
+          `https://www.googleapis.com/upload/drive/v3/files/${input.file_id}?uploadType=media&fields=id,name,modifiedTime,webViewLink`,
+          {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${currentGoogleAccessToken}`,
+              "Content-Type": uploadMimeType,
+            },
+            body: input.content,
+          }
+        );
+        if (!res.ok) {
+          const err = await res.text();
+          return `Google Drive API error (${res.status}): ${err.slice(0, 500)}`;
+        }
+        const file = await res.json();
+        return JSON.stringify({
+          id: file.id,
+          name: file.name,
+          modifiedTime: file.modifiedTime,
+          link: file.webViewLink || "",
+          message: `File "${file.name}" updated successfully.`,
+        }, null, 2);
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
     default:
       return `Unknown tool: ${name}`;
   }
@@ -387,7 +654,7 @@ function sendSSE(res, event, data) {
 function getSystemBlocks(customSystemPrompt, hasGoogleToken) {
   let base = customSystemPrompt || "You are a helpful coding assistant. You have access to a workspace at /home/user/workspace. Use the tools available to help the user with their tasks.";
   if (hasGoogleToken) {
-    base += "\n\nThe user has connected their Google account. You can use google_calendar_events, google_gmail_search, and google_gmail_read tools to access their calendar and email when relevant. Use these when the user asks about their schedule, meetings, emails, etc.";
+    base += "\n\nThe user has connected their Google account. You can use google_calendar_events, google_gmail_search, and google_gmail_read tools to access their calendar and email. You can also use google_drive_search, google_drive_read, google_drive_create, and google_drive_update to search, read, create, and update files in their Google Drive. Use these when the user asks about their schedule, meetings, emails, or files.";
   }
   // cache_control on system prompt so it's cached across turns
   return [{ type: "text", text: base, cache_control: { type: "ephemeral" } }];
@@ -407,8 +674,8 @@ async function runAgent(prompt, customSystemPrompt, stream, googleAccessToken) {
   // Initialize system blocks on first call, if custom prompt provided, or if Google token status changed
   const hasGoogle = !!googleAccessToken;
   const needsRefresh = !systemBlocks || customSystemPrompt ||
-    (hasGoogle && !systemBlocks[0]?.text?.includes("google_calendar_events")) ||
-    (!hasGoogle && systemBlocks[0]?.text?.includes("google_calendar_events"));
+    (hasGoogle && !systemBlocks[0]?.text?.includes("google_drive_search")) ||
+    (!hasGoogle && systemBlocks[0]?.text?.includes("google_drive_search"));
   if (needsRefresh) {
     systemBlocks = getSystemBlocks(customSystemPrompt, hasGoogle);
   }
