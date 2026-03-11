@@ -23,6 +23,13 @@ struct ChatMessage: Identifiable {
   var toolCallName: String?
   var toolCallResult: String?
 
+  /// When true, this assistant message is from the agent backend (not voice transcript)
+  /// and should render as a card instead of a regular bubble
+  var isAgentResult: Bool
+
+  /// Agent steps associated with this message (for card display)
+  var agentSteps: [AgentStep]
+
   init(
     id: String = UUID().uuidString,
     role: ChatMessageRole,
@@ -30,7 +37,9 @@ struct ChatMessage: Identifiable {
     timestamp: Date = Date(),
     status: ChatMessageStatus = .complete,
     toolCallName: String? = nil,
-    toolCallResult: String? = nil
+    toolCallResult: String? = nil,
+    isAgentResult: Bool = false,
+    agentSteps: [AgentStep] = []
   ) {
     self.id = id
     self.role = role
@@ -39,5 +48,7 @@ struct ChatMessage: Identifiable {
     self.status = status
     self.toolCallName = toolCallName
     self.toolCallResult = toolCallResult
+    self.isAgentResult = isAgentResult
+    self.agentSteps = agentSteps
   }
 }

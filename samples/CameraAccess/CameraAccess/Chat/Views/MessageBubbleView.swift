@@ -10,18 +10,22 @@ struct MessageBubbleView: View {
       VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
         if message.role == .toolCall {
           toolCallBubble
+        } else if message.isAgentResult {
+          agentResultCard
         } else {
           textBubble
         }
       }
 
-      if message.role == .assistant { Spacer(minLength: 60) }
+      if message.role == .assistant || message.isAgentResult { Spacer(minLength: 60) }
     }
     .padding(.horizontal, 16)
-    .padding(.vertical, 2)
+    .padding(.vertical, message.role == .toolCall ? 1 : 2)
     .accessibilityElement(children: .combine)
     .accessibilityLabel(accessibilityDescription)
   }
+
+  // MARK: - Regular text bubble (voice transcripts, user messages)
 
   private var textBubble: some View {
     HStack(alignment: .bottom, spacing: 4) {
@@ -45,30 +49,121 @@ struct MessageBubbleView: View {
     .background(bubbleBackground, in: RoundedRectangle(cornerRadius: 18))
   }
 
+  // MARK: - Tool call step indicator (small pill)
+
   private var toolCallBubble: some View {
-    HStack(spacing: 8) {
+    HStack(spacing: 6) {
       if message.status == .streaming {
         ProgressView()
           .controlSize(.small)
           .tint(.secondary)
       } else if case .error = message.status {
-        Image(systemName: "exclamationmark.circle.fill")
+        Image(systemName: "xmark.circle.fill")
           .foregroundStyle(.red)
-          .font(.caption)
+          .font(.caption2)
       } else {
         Image(systemName: "checkmark.circle.fill")
           .foregroundStyle(.green)
-          .font(.caption)
+          .font(.caption2)
       }
       Text(message.text)
         .font(.caption)
-        .fontWeight(.medium)
         .foregroundStyle(.secondary)
+        .lineLimit(1)
     }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 6)
-    .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 12))
+    .padding(.horizontal, 10)
+    .padding(.vertical, 4)
+    .background(.fill.quaternary, in: RoundedRectangle(cornerRadius: 8))
     .frame(maxWidth: .infinity, alignment: .center)
+  }
+
+  // MARK: - Agent result card (distinct from voice transcripts)
+
+  private var agentResultCard: some View {
+    VStack(alignment: .leading, spacing: 0) {
+      // Header
+      HStack(spacing: 8) {
+        Image(systemName: "cpu")
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
+
+        Text("Agent")
+          .font(.subheadline)
+          .fontWeight(.semibold)
+          .foregroundStyle(.secondary)
+
+        Spacer()
+
+        if message.status == .streaming {
+          ProgressView()
+            .controlSize(.small)
+            .tint(.secondary)
+        }
+      }
+      .padding(.horizontal, 14)
+      .padding(.top, 10)
+      .padding(.bottom, 8)
+
+      // Steps (collapsed inside card)
+      if !message.agentSteps.isEmpty {
+        VStack(alignment: .leading, spacing: 3) {
+          ForEach(message.agentSteps) { step in
+            HStack(spacing: 6) {
+              if step.isDone {
+                if step.success {
+                  Image(systemName: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                    .font(.caption2)
+                } else {
+                  Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.red)
+                    .font(.caption2)
+                }
+              } else {
+                ProgressView()
+                  .controlSize(.mini)
+                  .tint(.secondary)
+              }
+              Text(step.displayText)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .lineLimit(1)
+            }
+          }
+        }
+        .padding(.horizontal, 14)
+        .padding(.bottom, 8)
+      }
+
+      // Divider between steps and result
+      if !message.text.isEmpty {
+        Rectangle()
+          .fill(.separator)
+          .frame(height: 0.5)
+          .padding(.horizontal, 14)
+
+        // Result content
+        HStack(alignment: .bottom, spacing: 4) {
+          MarkdownTextView(
+            text: message.text,
+            foregroundColor: .primary
+          )
+          if message.status == .streaming {
+            TypingCursor()
+          }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+      }
+    }
+    .background(
+      RoundedRectangle(cornerRadius: 14)
+        .fill(Color(.secondarySystemGroupedBackground))
+    )
+    .overlay(
+      RoundedRectangle(cornerRadius: 14)
+        .stroke(.separator, lineWidth: 0.5)
+    )
   }
 
   private var bubbleBackground: Color {
