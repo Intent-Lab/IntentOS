@@ -206,7 +206,10 @@ class AgentBridge: ObservableObject {
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.timeoutInterval = 120
 
-    let body: [String: String] = ["prompt": prompt, "token": authToken]
+    var body: [String: Any] = ["prompt": prompt, "token": authToken]
+    if let googleToken = await GoogleAuthManager.shared.freshAccessToken() {
+      body["googleAccessToken"] = googleToken
+    }
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
     streamingText = ""
@@ -438,6 +441,16 @@ class AgentBridge: ObservableObject {
       return "Web search..."
     case "WebFetch":
       return "Fetching web page..."
+    case "google_calendar_events":
+      return "Checking calendar..."
+    case "google_gmail_search":
+      if let query = input?["query"] as? String {
+        let short = query.count > 40 ? String(query.prefix(40)) + "..." : query
+        return "Searching email: \(short)"
+      }
+      return "Searching email..."
+    case "google_gmail_read":
+      return "Reading email..."
     default:
       return "Running \(tool)..."
     }

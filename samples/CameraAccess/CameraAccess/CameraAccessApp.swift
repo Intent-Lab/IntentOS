@@ -16,6 +16,7 @@
 //
 
 import Foundation
+import GoogleSignIn
 import MWDATCore
 import SwiftUI
 
@@ -57,6 +58,9 @@ struct CameraAccessApp: App {
           }
         } message: {
           Text(wearablesViewModel.errorMessage)
+        }
+        .onOpenURL { url in
+          GIDSignIn.sharedInstance.handle(url)
         }
         #if canImport(MWDATMockDevice)
       .sheet(isPresented: $debugMenuViewModel.showDebugMenu) {

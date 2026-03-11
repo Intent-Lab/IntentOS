@@ -3,6 +3,7 @@ import SwiftUI
 struct SettingsView: View {
   @Environment(\.dismiss) private var dismiss
   private let settings = SettingsManager.shared
+  @ObservedObject private var googleAuth = GoogleAuthManager.shared
 
   @State private var geminiAPIKey: String = ""
   @State private var geminiSystemPrompt: String = ""
@@ -53,6 +54,31 @@ struct SettingsView: View {
               .autocapitalization(.none)
               .disableAutocorrection(true)
               .font(.system(.body, design: .monospaced))
+          }
+        }
+
+        Section(header: Text("Google Account"), footer: Text("Connect your Google account to let the agent access your Calendar and Gmail (read-only).")) {
+          if googleAuth.isSignedIn {
+            HStack {
+              VStack(alignment: .leading, spacing: 2) {
+                Text(googleAuth.userName ?? "Google Account")
+                  .font(.body)
+                Text(googleAuth.userEmail ?? "")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+              Spacer()
+              Button("Sign Out") {
+                googleAuth.signOut()
+              }
+              .foregroundColor(.red)
+            }
+          } else {
+            Button("Sign in with Google") {
+              guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                    let rootVC = windowScene.windows.first?.rootViewController else { return }
+              googleAuth.signIn(presenting: rootVC)
+            }
           }
         }
 

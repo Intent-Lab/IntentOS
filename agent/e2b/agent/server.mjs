@@ -128,7 +128,63 @@ const TOOLS = [
     },
   },
   { type: "web_search_20250305", name: "web_search" },
+  {
+    name: "google_calendar_events",
+    description:
+      "List upcoming events from the user's Google Calendar. Returns event title, time, location, and attendees. Only available if the user has connected their Google account.",
+    input_schema: {
+      type: "object",
+      properties: {
+        days_ahead: {
+          type: "number",
+          description: "Number of days ahead to look (default 1, max 14)",
+        },
+        max_results: {
+          type: "number",
+          description: "Maximum number of events to return (default 10, max 50)",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "google_gmail_search",
+    description:
+      "Search Gmail messages. Returns message ID, subject, from, date, and snippet. Only available if the user has connected their Google account.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Gmail search query (same syntax as Gmail search box, e.g. 'from:alice subject:meeting is:unread')",
+        },
+        max_results: {
+          type: "number",
+          description: "Maximum number of messages to return (default 10, max 20)",
+        },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "google_gmail_read",
+    description:
+      "Read the full content of a specific Gmail message by ID (from google_gmail_search results). Returns subject, from, to, date, and body text.",
+    input_schema: {
+      type: "object",
+      properties: {
+        message_id: {
+          type: "string",
+          description: "The Gmail message ID to read",
+        },
+      },
+      required: ["message_id"],
+    },
+  },
 ];
+
+// --- Per-request Google OAuth token (set before each agent run) ---
+let currentGoogleAccessToken = null;
 
 // --- Tool execution ---
 async function executeTool(name, input) {
@@ -208,6 +264,114 @@ async function executeTool(name, input) {
         return `Error: ${err.stderr || err.message}`;
       }
     }
+    case "google_calendar_events": {
+      if (!currentGoogleAccessToken) return "Error: Google account not connected. Ask the user to sign in to Google in the app Settings.";
+      try {
+        const daysAhead = Math.min(input.days_ahead || 1, 14);
+        const maxResults = Math.min(input.max_results || 10, 50);
+        const timeMin = new Date().toISOString();
+        const timeMax = new Date(Date.now() + daysAhead * 86400000).toISOString();
+        const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&maxResults=${maxResults}&singleEvents=true&orderBy=startTime`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${currentGoogleAccessToken}` },
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          return `Google Calendar API error (${res.status}): ${err.slice(0, 500)}`;
+        }
+        const data = await res.json();
+        const events = (data.items || []).map((e) => ({
+          title: e.summary || "(no title)",
+          start: e.start?.dateTime || e.start?.date || "unknown",
+          end: e.end?.dateTime || e.end?.date || "",
+          location: e.location || "",
+          attendees: (e.attendees || []).map((a) => a.email).join(", "),
+        }));
+        return events.length > 0
+          ? JSON.stringify(events, null, 2)
+          : "No events found in the specified time range.";
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case "google_gmail_search": {
+      if (!currentGoogleAccessToken) return "Error: Google account not connected. Ask the user to sign in to Google in the app Settings.";
+      try {
+        const maxResults = Math.min(input.max_results || 10, 20);
+        const listUrl = `https://www.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(input.query)}&maxResults=${maxResults}`;
+        const listRes = await fetch(listUrl, {
+          headers: { Authorization: `Bearer ${currentGoogleAccessToken}` },
+        });
+        if (!listRes.ok) {
+          const err = await listRes.text();
+          return `Gmail API error (${listRes.status}): ${err.slice(0, 500)}`;
+        }
+        const listData = await listRes.json();
+        const messageIds = (listData.messages || []).map((m) => m.id);
+        if (messageIds.length === 0) return "No messages found matching the query.";
+        const messages = [];
+        for (const id of messageIds) {
+          const msgRes = await fetch(
+            `https://www.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=Date`,
+            { headers: { Authorization: `Bearer ${currentGoogleAccessToken}` } }
+          );
+          if (msgRes.ok) {
+            const msg = await msgRes.json();
+            const headers = Object.fromEntries(
+              (msg.payload?.headers || []).map((h) => [h.name, h.value])
+            );
+            messages.push({
+              id: msg.id,
+              subject: headers.Subject || "(no subject)",
+              from: headers.From || "",
+              date: headers.Date || "",
+              snippet: msg.snippet || "",
+            });
+          }
+        }
+        return JSON.stringify(messages, null, 2);
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case "google_gmail_read": {
+      if (!currentGoogleAccessToken) return "Error: Google account not connected. Ask the user to sign in to Google in the app Settings.";
+      try {
+        const msgRes = await fetch(
+          `https://www.googleapis.com/gmail/v1/users/me/messages/${input.message_id}?format=full`,
+          { headers: { Authorization: `Bearer ${currentGoogleAccessToken}` } }
+        );
+        if (!msgRes.ok) {
+          const err = await msgRes.text();
+          return `Gmail API error (${msgRes.status}): ${err.slice(0, 500)}`;
+        }
+        const msg = await msgRes.json();
+        const headers = Object.fromEntries(
+          (msg.payload?.headers || []).map((h) => [h.name, h.value])
+        );
+        let body = "";
+        function extractText(part) {
+          if (part.mimeType === "text/plain" && part.body?.data) {
+            body += Buffer.from(part.body.data, "base64url").toString("utf-8");
+          } else if (part.parts) {
+            part.parts.forEach(extractText);
+          }
+        }
+        extractText(msg.payload);
+        if (!body && msg.snippet) body = msg.snippet;
+        if (body.length > 5000) body = body.slice(0, 5000) + "\n... [truncated]";
+        return JSON.stringify({
+          id: msg.id,
+          subject: headers.Subject || "(no subject)",
+          from: headers.From || "",
+          to: headers.To || "",
+          date: headers.Date || "",
+          body,
+        }, null, 2);
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
     default:
       return `Unknown tool: ${name}`;
   }
@@ -220,23 +384,33 @@ function sendSSE(res, event, data) {
 }
 
 // --- System prompt setup ---
-function getSystemBlocks(customSystemPrompt) {
-  const base = customSystemPrompt || "You are a helpful coding assistant. You have access to a workspace at /home/user/workspace. Use the tools available to help the user with their tasks.";
+function getSystemBlocks(customSystemPrompt, hasGoogleToken) {
+  let base = customSystemPrompt || "You are a helpful coding assistant. You have access to a workspace at /home/user/workspace. Use the tools available to help the user with their tasks.";
+  if (hasGoogleToken) {
+    base += "\n\nThe user has connected their Google account. You can use google_calendar_events, google_gmail_search, and google_gmail_read tools to access their calendar and email when relevant. Use these when the user asks about their schedule, meetings, emails, etc.";
+  }
   // cache_control on system prompt so it's cached across turns
   return [{ type: "text", text: base, cache_control: { type: "ephemeral" } }];
 }
 
 // --- Core agent loop ---
-async function runAgent(prompt, customSystemPrompt, stream) {
+async function runAgent(prompt, customSystemPrompt, stream, googleAccessToken) {
   const startTime = Date.now();
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
   let cacheReadTokens = 0;
   let cacheCreationTokens = 0;
 
-  // Initialize system blocks on first call or if custom prompt provided
-  if (!systemBlocks || customSystemPrompt) {
-    systemBlocks = getSystemBlocks(customSystemPrompt);
+  // Set per-request Google token for tool execution
+  currentGoogleAccessToken = googleAccessToken || null;
+
+  // Initialize system blocks on first call, if custom prompt provided, or if Google token status changed
+  const hasGoogle = !!googleAccessToken;
+  const needsRefresh = !systemBlocks || customSystemPrompt ||
+    (hasGoogle && !systemBlocks[0]?.text?.includes("google_calendar_events")) ||
+    (!hasGoogle && systemBlocks[0]?.text?.includes("google_calendar_events"));
+  if (needsRefresh) {
+    systemBlocks = getSystemBlocks(customSystemPrompt, hasGoogle);
   }
 
   // Add user message
@@ -444,7 +618,7 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    const { prompt, systemPrompt } = parsed;
+    const { prompt, systemPrompt, googleAccessToken } = parsed;
     if (!prompt) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "prompt is required" }));
@@ -454,7 +628,7 @@ const server = createServer(async (req, res) => {
     // --- POST /message (non-streaming, backward compatible) ---
     if (req.url === "/message") {
       try {
-        const result = await enqueue(() => runAgent(prompt, systemPrompt, null));
+        const result = await enqueue(() => runAgent(prompt, systemPrompt, null, googleAccessToken));
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify(result));
       } catch (error) {
@@ -476,7 +650,7 @@ const server = createServer(async (req, res) => {
       });
 
       try {
-        const result = await enqueue(() => runAgent(prompt, systemPrompt, res));
+        const result = await enqueue(() => runAgent(prompt, systemPrompt, res, googleAccessToken));
         sendSSE(res, "done", {
           result: result.result,
           cost_usd: result.cost_usd,
