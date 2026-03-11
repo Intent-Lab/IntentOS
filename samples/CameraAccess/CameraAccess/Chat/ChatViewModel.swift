@@ -13,8 +13,6 @@ class ChatViewModel: ObservableObject {
   @Published var isVoiceModeActive: Bool = false
   @Published var voiceConnectionState: GeminiConnectionState = .disconnected
   @Published var isModelSpeaking: Bool = false
-  @Published var userTranscript: String = ""
-  @Published var aiTranscript: String = ""
   @Published var toolCallStatus: ToolCallStatus = .idle
 
   // MARK: - Dependencies
@@ -24,12 +22,14 @@ class ChatViewModel: ObservableObject {
   private var sendTask: Task<Void, Never>?
   private var streamingObservation: Task<Void, Never>?
   private var voiceObservation: Task<Void, Never>?
-  private var voiceTranscripts: [(role: ChatMessageRole, text: String)] = []
+
+  // Voice mode: live bubble IDs for the current turn
+  private var activeUserBubbleId: String?
+  private var activeAIBubbleId: String?
   private var lastUserTranscript: String = ""
   private var lastAITranscript: String = ""
 
   // Voice from chat always uses iPhone mode (speaker + mic co-located on phone)
-  // Glasses streaming view sets its own mode when launched separately
   var streamingMode: StreamingMode = .iPhone
 
   // MARK: - Text Mode (sends directly to agent backend)
@@ -98,12 +98,13 @@ class ChatViewModel: ObservableObject {
     }
   }
 
-  // MARK: - Voice Mode (Gemini Live + agent dual-agent)
+  // MARK: - Voice Mode (Gemini Live, inline in chat)
 
   func startVoiceMode() async {
     guard !isVoiceModeActive else { return }
     isVoiceModeActive = true
-    voiceTranscripts = []
+    activeUserBubbleId = nil
+    activeAIBubbleId = nil
     lastUserTranscript = ""
     lastAITranscript = ""
 
@@ -134,26 +135,65 @@ class ChatViewModel: ObservableObject {
         let newUser = self.geminiSessionVM.userTranscript
         let newAI = self.geminiSessionVM.aiTranscript
 
-        if !newUser.isEmpty && newUser != self.lastUserTranscript {
-          self.lastUserTranscript = newUser
-        }
-        self.userTranscript = newUser
-
-        if !newAI.isEmpty && newAI != self.lastAITranscript {
-          self.lastAITranscript = newAI
-        }
-        self.aiTranscript = newAI
-
-        // Snapshot transcript pair when turn completes (transcripts cleared)
-        if newUser.isEmpty && !self.lastUserTranscript.isEmpty {
-          if !self.lastUserTranscript.isEmpty {
-            RemoteLogger.shared.log("voice:user", data: ["text": self.lastUserTranscript])
-            self.voiceTranscripts.append((role: .user, text: self.lastUserTranscript))
+        // --- Live user bubble ---
+        if !newUser.isEmpty {
+          if newUser != self.lastUserTranscript {
+            if self.activeUserBubbleId == nil {
+              // New user turn: create a bubble
+              let bubble = ChatMessage(role: .user, text: newUser, status: .streaming)
+              self.messages.append(bubble)
+              self.activeUserBubbleId = bubble.id
+            } else {
+              // Update existing bubble
+              self.updateMessage(id: self.activeUserBubbleId!) { msg in
+                msg.text = newUser
+              }
+            }
+            self.lastUserTranscript = newUser
           }
-          if !self.lastAITranscript.isEmpty {
-            RemoteLogger.shared.log("voice:ai", data: ["text": self.lastAITranscript])
-            self.voiceTranscripts.append((role: .assistant, text: self.lastAITranscript))
+        }
+
+        // --- Live AI bubble ---
+        if !newAI.isEmpty {
+          if newAI != self.lastAITranscript {
+            // Finalize user bubble when AI starts responding
+            if let userId = self.activeUserBubbleId {
+              self.updateMessage(id: userId) { msg in
+                msg.status = .complete
+              }
+            }
+
+            if self.activeAIBubbleId == nil {
+              // New AI turn: create a bubble
+              let bubble = ChatMessage(role: .assistant, text: newAI, status: .streaming)
+              self.messages.append(bubble)
+              self.activeAIBubbleId = bubble.id
+            } else {
+              // Update existing bubble
+              self.updateMessage(id: self.activeAIBubbleId!) { msg in
+                msg.text = newAI
+              }
+            }
+            self.lastAITranscript = newAI
           }
+        }
+
+        // --- Turn complete: user transcript cleared by VoiceAgent ---
+        if newUser.isEmpty && self.activeUserBubbleId != nil {
+          // Finalize both bubbles for this turn
+          if let userId = self.activeUserBubbleId {
+            self.updateMessage(id: userId) { msg in
+              msg.status = .complete
+            }
+          }
+          if let aiId = self.activeAIBubbleId {
+            self.updateMessage(id: aiId) { msg in
+              msg.status = .complete
+            }
+          }
+          // Reset for next turn
+          self.activeUserBubbleId = nil
+          self.activeAIBubbleId = nil
           self.lastUserTranscript = ""
           self.lastAITranscript = ""
         }
@@ -172,52 +212,43 @@ class ChatViewModel: ObservableObject {
   }
 
   func stopVoiceMode() {
-    // Cancel observation FIRST to prevent it from re-populating lastAITranscript
-    // from VoiceAgent's stale aiTranscript (not cleared on turnComplete)
     voiceObservation?.cancel()
     voiceObservation = nil
 
-    // Only append remaining transcripts if they haven't already been snapshotted
-    if !lastUserTranscript.isEmpty {
-      let alreadyCaptured = voiceTranscripts.last(where: { $0.role == .user })?.text == lastUserTranscript
-      if !alreadyCaptured {
-        voiceTranscripts.append((role: .user, text: lastUserTranscript))
-      }
+    // Finalize any in-progress bubbles
+    if let userId = activeUserBubbleId {
+      updateMessage(id: userId) { msg in msg.status = .complete }
     }
-    if !lastAITranscript.isEmpty {
-      let alreadyCaptured = voiceTranscripts.last(where: { $0.role == .assistant })?.text == lastAITranscript
-      if !alreadyCaptured {
-        voiceTranscripts.append((role: .assistant, text: lastAITranscript))
-      }
+    if let aiId = activeAIBubbleId {
+      updateMessage(id: aiId) { msg in msg.status = .complete }
     }
 
-    RemoteLogger.shared.log("session:voice_end", data: ["turns": String(voiceTranscripts.count)])
+    RemoteLogger.shared.log("session:voice_end")
     geminiSessionVM.stopSession()
 
-    // Bridge voice transcripts into agent's conversation history
-    let contextMessages = voiceTranscripts.compactMap { transcript -> [String: String]? in
-      let text = transcript.text.trimmingCharacters(in: .whitespacesAndNewlines)
+    // Bridge voice messages into agent's conversation history
+    // Collect all messages added during this voice session (user + assistant after voice started)
+    let voiceMessages = messages.compactMap { msg -> [String: String]? in
+      let text = msg.text.trimmingCharacters(in: .whitespacesAndNewlines)
       guard !text.isEmpty else { return nil }
-      let role = transcript.role == .user ? "user" : "assistant"
-      return ["role": role, "content": text]
-    }
-    if !contextMessages.isEmpty {
-      agentBridge.injectContext(contextMessages)
-    }
-
-    for transcript in voiceTranscripts {
-      if !transcript.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-        messages.append(ChatMessage(role: transcript.role, text: transcript.text))
+      switch msg.role {
+      case .user: return ["role": "user", "content": text]
+      case .assistant: return ["role": "assistant", "content": text]
+      case .toolCall: return nil
       }
+    }
+    if !voiceMessages.isEmpty {
+      agentBridge.injectContext(voiceMessages)
     }
 
     isVoiceModeActive = false
     voiceConnectionState = .disconnected
     isModelSpeaking = false
-    userTranscript = ""
-    aiTranscript = ""
     toolCallStatus = .idle
-    voiceTranscripts = []
+    activeUserBubbleId = nil
+    activeAIBubbleId = nil
+    lastUserTranscript = ""
+    lastAITranscript = ""
   }
 
   func sendVideoFrame(_ image: UIImage) {

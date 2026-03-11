@@ -16,39 +16,38 @@ struct ChatView: View {
   }
 
   var body: some View {
-    ZStack {
-      VStack(spacing: 0) {
-        ChatTopBar(
-          showGlassesButton: wearablesVM.registrationState == .registered || wearablesVM.hasMockDevice,
-          onGlassesTapped: { showGlassesStream = true },
-          onSettingsTapped: { showSettings = true }
-        )
+    VStack(spacing: 0) {
+      ChatTopBar(
+        showGlassesButton: wearablesVM.registrationState == .registered || wearablesVM.hasMockDevice,
+        onGlassesTapped: { showGlassesStream = true },
+        onSettingsTapped: { showSettings = true }
+      )
 
-        Divider()
+      Divider()
 
-        ChatMessageList(messages: viewModel.messages)
+      ChatMessageList(messages: viewModel.messages)
 
-        Divider()
+      Divider()
 
-        ChatInputBar(
-          text: $viewModel.inputText,
-          isSending: viewModel.isSending,
-          isInputFocused: $isInputFocused,
-          onSend: {
-            isInputFocused = false
-            viewModel.sendMessage()
-          },
-          onVoiceTapped: {
-            isInputFocused = false
-            Task { await viewModel.startVoiceMode() }
-          }
-        )
-      }
-
-      if viewModel.isVoiceModeActive {
-        VoiceModeOverlay(viewModel: viewModel)
-          .animation(.easeInOut(duration: 0.3), value: viewModel.isVoiceModeActive)
-      }
+      ChatInputBar(
+        text: $viewModel.inputText,
+        isSending: viewModel.isSending,
+        isVoiceModeActive: viewModel.isVoiceModeActive,
+        isModelSpeaking: viewModel.isModelSpeaking,
+        voiceConnectionState: viewModel.voiceConnectionState,
+        isInputFocused: $isInputFocused,
+        onSend: {
+          isInputFocused = false
+          viewModel.sendMessage()
+        },
+        onVoiceTapped: {
+          isInputFocused = false
+          Task { await viewModel.startVoiceMode() }
+        },
+        onVoiceStop: {
+          viewModel.stopVoiceMode()
+        }
+      )
     }
     .sheet(isPresented: $showSettings) {
       SettingsView()
