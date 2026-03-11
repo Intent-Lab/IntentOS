@@ -4,18 +4,18 @@ struct MessageBubbleView: View {
   let message: ChatMessage
 
   var body: some View {
-    HStack {
-      if message.role == .user { Spacer(minLength: 60) }
-
-      VStack(alignment: message.role == .user ? .trailing : .leading, spacing: 4) {
-        if message.role == .toolCall {
-          toolCallBubble
-        } else {
+    Group {
+      if message.role == .toolCall {
+        toolCallBubble
+      } else if message.role == .user {
+        HStack {
+          Spacer(minLength: 60)
           textBubble
         }
+      } else {
+        // Assistant: plain text, no bubble, equal left/right padding
+        assistantText
       }
-
-      if message.role == .assistant { Spacer(minLength: 60) }
     }
     .padding(.horizontal, 16)
     .padding(.vertical, message.role == .toolCall ? 1 : 2)
@@ -23,18 +23,18 @@ struct MessageBubbleView: View {
     .accessibilityLabel(accessibilityDescription)
   }
 
-  // MARK: - Regular text bubble (voice transcripts, user messages)
+  // MARK: - User bubble (with background)
 
   private var textBubble: some View {
     HStack(alignment: .bottom, spacing: 4) {
       if message.text.isEmpty && message.status == .streaming {
         Text(" ")
           .font(.body)
-          .foregroundStyle(message.role == .user ? .white : .primary)
+          .foregroundStyle(.white)
       } else {
         MarkdownTextView(
           text: message.text,
-          foregroundColor: message.role == .user ? .white : .primary
+          foregroundColor: .white
         )
       }
 
@@ -44,7 +44,28 @@ struct MessageBubbleView: View {
     }
     .padding(.horizontal, 14)
     .padding(.vertical, 10)
-    .background(bubbleBackground, in: RoundedRectangle(cornerRadius: 18))
+    .background(Color("appPrimaryColor"), in: RoundedRectangle(cornerRadius: 18))
+  }
+
+  // MARK: - Assistant text (no bubble, plain text)
+
+  private var assistantText: some View {
+    HStack(alignment: .bottom, spacing: 4) {
+      if message.text.isEmpty && message.status == .streaming {
+        Text(" ")
+          .font(.body)
+          .foregroundStyle(.primary)
+      } else {
+        MarkdownTextView(
+          text: message.text,
+          foregroundColor: .primary
+        )
+      }
+
+      if message.status == .streaming {
+        TypingCursor()
+      }
+    }
   }
 
   // MARK: - Tool call step indicator (small pill)
@@ -73,14 +94,6 @@ struct MessageBubbleView: View {
     .padding(.vertical, 4)
     .background(.fill.quaternary, in: RoundedRectangle(cornerRadius: 8))
     .frame(maxWidth: .infinity, alignment: .center)
-  }
-
-  private var bubbleBackground: Color {
-    switch message.role {
-    case .user: return Color("appPrimaryColor")
-    case .assistant: return Color(.secondarySystemGroupedBackground)
-    case .toolCall: return Color(.tertiarySystemFill)
-    }
   }
 
   private var accessibilityDescription: String {
