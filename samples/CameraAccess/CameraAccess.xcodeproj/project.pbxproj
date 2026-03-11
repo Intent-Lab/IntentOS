@@ -34,7 +34,6 @@
 		9DBB18A82F5FFE240019775B /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB189F2F5FFE240019775B /* ChatView.swift */; };
 		9DBB18A92F5FFE240019775B /* ChatMessageList.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB189D2F5FFE240019775B /* ChatMessageList.swift */; };
 		9DBB18AA2F5FFE240019775B /* ChatMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB189A2F5FFE240019775B /* ChatMessage.swift */; };
-		9DBB18AB2F5FFE240019775B /* VoiceModeOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18A12F5FFE240019775B /* VoiceModeOverlay.swift */; };
 		9DBB18AC2F5FFE240019775B /* ChatTopBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB189E2F5FFE240019775B /* ChatTopBar.swift */; };
 		9DBB18AE2F5FFE5D0019775B /* GeminiChatService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18AD2F5FFE5D0019775B /* GeminiChatService.swift */; };
 		9DBB18B92F5FFF370019775B /* AgentProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18B52F5FFF370019775B /* AgentProtocol.swift */; };
@@ -538,7 +537,6 @@
 				9DBB18A82F5FFE240019775B /* ChatView.swift in Sources */,
 				9DBB18A92F5FFE240019775B /* ChatMessageList.swift in Sources */,
 				9DBB18AA2F5FFE240019775B /* ChatMessage.swift in Sources */,
-				9DBB18AB2F5FFE240019775B /* VoiceModeOverlay.swift in Sources */,
 				9DBB18AC2F5FFE240019775B /* ChatTopBar.swift in Sources */,
 				8FFD60342E8434070035E446 /* MediaPickerView.swift in Sources */,
 				9DD6CB0E2F3C64F400ED7098 /* WebRTCOverlayView.swift in Sources */,
