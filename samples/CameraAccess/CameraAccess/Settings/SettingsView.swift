@@ -4,6 +4,7 @@ struct SettingsView: View {
   @Environment(\.dismiss) private var dismiss
   private let settings = SettingsManager.shared
   @ObservedObject private var googleAuth = GoogleAuthManager.shared
+  @ObservedObject private var notionAuth = NotionAuthManager.shared
 
   @State private var geminiAPIKey: String = ""
   @State private var geminiSystemPrompt: String = ""
@@ -78,6 +79,31 @@ struct SettingsView: View {
               guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                     let rootVC = windowScene.windows.first?.rootViewController else { return }
               googleAuth.signIn(presenting: rootVC)
+            }
+          }
+        }
+
+        Section(header: Text("Notion"), footer: Text("Connect your Notion workspace to let the agent search, read, and create pages.")) {
+          if notionAuth.isSignedIn {
+            HStack {
+              VStack(alignment: .leading, spacing: 2) {
+                Text(notionAuth.workspaceName ?? "Notion Workspace")
+                  .font(.body)
+                Text("Connected")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+              Spacer()
+              Button("Disconnect") {
+                notionAuth.signOut()
+              }
+              .foregroundColor(.red)
+            }
+          } else {
+            Button("Connect Notion") {
+              guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                    let rootVC = windowScene.windows.first?.rootViewController else { return }
+              notionAuth.signIn(from: rootVC)
             }
           }
         }

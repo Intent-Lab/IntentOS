@@ -210,6 +210,9 @@ class AgentBridge: ObservableObject {
     if let googleToken = await GoogleAuthManager.shared.freshAccessToken() {
       body["googleAccessToken"] = googleToken
     }
+    if let notionToken = NotionAuthManager.shared.accessToken() {
+      body["notionAccessToken"] = notionToken
+    }
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
     streamingText = ""
@@ -472,6 +475,21 @@ class AgentBridge: ObservableObject {
         return "Updating \(name)"
       }
       return "Updating Drive file..."
+    case "notion_search":
+      if let query = input?["query"] as? String {
+        let short = query.count > 40 ? String(query.prefix(40)) + "..." : query
+        return "Searching Notion: \(short)"
+      }
+      return "Searching Notion..."
+    case "notion_read_page":
+      return "Reading Notion page..."
+    case "notion_create_page":
+      if let title = input?["title"] as? String {
+        return "Creating \(title)"
+      }
+      return "Creating Notion page..."
+    case "notion_update_page":
+      return "Updating Notion page..."
     default:
       return "Running \(tool)..."
     }

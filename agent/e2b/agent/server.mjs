@@ -269,10 +269,153 @@ const TOOLS = [
       required: ["file_id", "content"],
     },
   },
+  {
+    name: "notion_search",
+    description:
+      "Search for pages and databases in the user's Notion workspace by title. Returns page/database ID, title, URL, and last edited time. Only available if the user has connected their Notion workspace.",
+    input_schema: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Search query to match against page and database titles",
+        },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "notion_read_page",
+    description:
+      "Read a Notion page's properties and content blocks. Returns the page title, properties, and all content (paragraphs, headings, lists, etc). Only available if the user has connected their Notion workspace.",
+    input_schema: {
+      type: "object",
+      properties: {
+        page_id: {
+          type: "string",
+          description: "The Notion page ID to read",
+        },
+      },
+      required: ["page_id"],
+    },
+  },
+  {
+    name: "notion_create_page",
+    description:
+      "Create a new page in Notion. Can create as a child of another page or as an entry in a database. Content is plain text where each line becomes a paragraph. Only available if the user has connected their Notion workspace.",
+    input_schema: {
+      type: "object",
+      properties: {
+        parent_id: {
+          type: "string",
+          description: "Parent page ID or database ID. Use notion_search to find the right parent.",
+        },
+        parent_type: {
+          type: "string",
+          description: "'page' or 'database'. Default: 'page'.",
+        },
+        title: {
+          type: "string",
+          description: "Page title",
+        },
+        content: {
+          type: "string",
+          description: "Page content as plain text. Each line becomes a paragraph block.",
+        },
+      },
+      required: ["parent_id", "title"],
+    },
+  },
+  {
+    name: "notion_update_page",
+    description:
+      "Append content blocks to an existing Notion page, or update its title. Only available if the user has connected their Notion workspace.",
+    input_schema: {
+      type: "object",
+      properties: {
+        page_id: {
+          type: "string",
+          description: "The Notion page ID to update",
+        },
+        content: {
+          type: "string",
+          description: "Text content to append. Each line becomes a new paragraph block.",
+        },
+        title: {
+          type: "string",
+          description: "New title for the page (optional, only if changing the title)",
+        },
+      },
+      required: ["page_id"],
+    },
+  },
 ];
 
-// --- Per-request Google OAuth token (set before each agent run) ---
+// --- Per-request OAuth tokens (set before each agent run) ---
 let currentGoogleAccessToken = null;
+let currentNotionAccessToken = null;
+
+const NOTION_API = "https://api.notion.com/v1";
+const NOTION_VERSION = "2022-06-28";
+
+function notionHeaders() {
+  return {
+    Authorization: `Bearer ${currentNotionAccessToken}`,
+    "Notion-Version": NOTION_VERSION,
+    "Content-Type": "application/json",
+  };
+}
+
+function textToNotionBlocks(text) {
+  if (!text) return [];
+  return text.split("\n").filter((line) => line.trim()).map((line) => ({
+    object: "block",
+    type: "paragraph",
+    paragraph: {
+      rich_text: [{ type: "text", text: { content: line } }],
+    },
+  }));
+}
+
+function notionBlocksToText(blocks) {
+  return blocks.map((block) => {
+    const type = block.type;
+    const richText = block[type]?.rich_text || [];
+    const text = richText.map((rt) => rt.plain_text || "").join("");
+    switch (type) {
+      case "heading_1": return `# ${text}`;
+      case "heading_2": return `## ${text}`;
+      case "heading_3": return `### ${text}`;
+      case "bulleted_list_item": return `- ${text}`;
+      case "numbered_list_item": return `1. ${text}`;
+      case "to_do": return `[${block.to_do?.checked ? "x" : " "}] ${text}`;
+      case "code": return "```\n" + (block.code?.rich_text?.map((rt) => rt.plain_text).join("") || text) + "\n```";
+      case "divider": return "---";
+      case "quote": return `> ${text}`;
+      case "callout": return `> ${text}`;
+      case "toggle": return `> ${text}`;
+      default: return text;
+    }
+  }).filter(Boolean).join("\n");
+}
+
+function extractNotionTitle(page) {
+  // Try common title property names
+  const props = page.properties || {};
+  for (const key of ["title", "Title", "Name", "name"]) {
+    const prop = props[key];
+    if (prop?.title) {
+      return prop.title.map((t) => t.plain_text || "").join("") || "(untitled)";
+    }
+  }
+  // Fallback: find any title-type property
+  for (const prop of Object.values(props)) {
+    if (prop?.type === "title" && prop.title) {
+      return prop.title.map((t) => t.plain_text || "").join("") || "(untitled)";
+    }
+  }
+  return "(untitled)";
+}
 
 // --- Tool execution ---
 async function executeTool(name, input) {
@@ -639,6 +782,149 @@ async function executeTool(name, input) {
         return `Error: ${err.message}`;
       }
     }
+    case "notion_search": {
+      if (!currentNotionAccessToken) return "Error: Notion workspace not connected. Ask the user to connect Notion in the app Settings.";
+      try {
+        const res = await fetch(`${NOTION_API}/search`, {
+          method: "POST",
+          headers: notionHeaders(),
+          body: JSON.stringify({ query: input.query, page_size: 10 }),
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          return `Notion API error (${res.status}): ${err.slice(0, 500)}`;
+        }
+        const data = await res.json();
+        const results = (data.results || []).map((item) => ({
+          id: item.id,
+          type: item.object, // "page" or "database"
+          title: item.object === "database"
+            ? (item.title || []).map((t) => t.plain_text).join("") || "(untitled)"
+            : extractNotionTitle(item),
+          url: item.url || "",
+          last_edited: item.last_edited_time || "",
+        }));
+        return results.length > 0
+          ? JSON.stringify(results, null, 2)
+          : "No pages or databases found matching the query.";
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case "notion_read_page": {
+      if (!currentNotionAccessToken) return "Error: Notion workspace not connected. Ask the user to connect Notion in the app Settings.";
+      try {
+        // Get page properties
+        const pageRes = await fetch(`${NOTION_API}/pages/${input.page_id}`, {
+          headers: notionHeaders(),
+        });
+        if (!pageRes.ok) {
+          const err = await pageRes.text();
+          return `Notion API error (${pageRes.status}): ${err.slice(0, 500)}`;
+        }
+        const page = await pageRes.json();
+        const title = extractNotionTitle(page);
+
+        // Get page content blocks (with pagination, up to 300 blocks)
+        let allBlocks = [];
+        let cursor = undefined;
+        for (let i = 0; i < 3; i++) {
+          const url = `${NOTION_API}/blocks/${input.page_id}/children?page_size=100${cursor ? `&start_cursor=${cursor}` : ""}`;
+          const blocksRes = await fetch(url, { headers: notionHeaders() });
+          if (!blocksRes.ok) break;
+          const blocksData = await blocksRes.json();
+          allBlocks = allBlocks.concat(blocksData.results || []);
+          if (!blocksData.has_more) break;
+          cursor = blocksData.next_cursor;
+        }
+
+        const content = notionBlocksToText(allBlocks);
+        const result = { title, url: page.url || "", content };
+        if (content.length > 10000) result.content = content.slice(0, 10000) + "\n... [truncated]";
+        return JSON.stringify(result, null, 2);
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case "notion_create_page": {
+      if (!currentNotionAccessToken) return "Error: Notion workspace not connected. Ask the user to connect Notion in the app Settings.";
+      try {
+        const parentType = input.parent_type || "page";
+        const parent = parentType === "database"
+          ? { database_id: input.parent_id }
+          : { page_id: input.parent_id };
+
+        const properties = parentType === "database"
+          ? { Name: { title: [{ text: { content: input.title } }] } }
+          : { title: { title: [{ text: { content: input.title } }] } };
+
+        const body = { parent, properties };
+        if (input.content) {
+          body.children = textToNotionBlocks(input.content);
+        }
+
+        const res = await fetch(`${NOTION_API}/pages`, {
+          method: "POST",
+          headers: notionHeaders(),
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const err = await res.text();
+          return `Notion API error (${res.status}): ${err.slice(0, 500)}`;
+        }
+        const page = await res.json();
+        return JSON.stringify({
+          id: page.id,
+          url: page.url || "",
+          message: `Page "${input.title}" created successfully.`,
+        }, null, 2);
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case "notion_update_page": {
+      if (!currentNotionAccessToken) return "Error: Notion workspace not connected. Ask the user to connect Notion in the app Settings.";
+      try {
+        const results = [];
+
+        // Update title if provided
+        if (input.title) {
+          const res = await fetch(`${NOTION_API}/pages/${input.page_id}`, {
+            method: "PATCH",
+            headers: notionHeaders(),
+            body: JSON.stringify({
+              properties: { title: { title: [{ text: { content: input.title } }] } },
+            }),
+          });
+          if (!res.ok) {
+            const err = await res.text();
+            return `Notion API error updating title (${res.status}): ${err.slice(0, 500)}`;
+          }
+          results.push("Title updated.");
+        }
+
+        // Append content blocks if provided
+        if (input.content) {
+          const blocks = textToNotionBlocks(input.content);
+          const res = await fetch(`${NOTION_API}/blocks/${input.page_id}/children`, {
+            method: "PATCH",
+            headers: notionHeaders(),
+            body: JSON.stringify({ children: blocks }),
+          });
+          if (!res.ok) {
+            const err = await res.text();
+            return `Notion API error appending content (${res.status}): ${err.slice(0, 500)}`;
+          }
+          results.push(`${blocks.length} block(s) appended.`);
+        }
+
+        return results.length > 0
+          ? results.join(" ")
+          : "No changes specified (provide title or content).";
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
     default:
       return `Unknown tool: ${name}`;
   }
@@ -651,33 +937,41 @@ function sendSSE(res, event, data) {
 }
 
 // --- System prompt setup ---
-function getSystemBlocks(customSystemPrompt, hasGoogleToken) {
+function getSystemBlocks(customSystemPrompt, hasGoogleToken, hasNotionToken) {
   let base = customSystemPrompt || "You are a helpful coding assistant. You have access to a workspace at /home/user/workspace. Use the tools available to help the user with their tasks.";
   if (hasGoogleToken) {
     base += "\n\nThe user has connected their Google account. You can use google_calendar_events, google_gmail_search, and google_gmail_read tools to access their calendar and email. You can also use google_drive_search, google_drive_read, google_drive_create, and google_drive_update to search, read, create, and update files in their Google Drive. Use these when the user asks about their schedule, meetings, emails, or files.";
+  }
+  if (hasNotionToken) {
+    base += "\n\nThe user has connected their Notion workspace. You can use notion_search to find pages and databases, notion_read_page to read page content, notion_create_page to create new pages, and notion_update_page to append content to existing pages. Use these when the user asks about their Notion notes, documents, or databases.";
   }
   // cache_control on system prompt so it's cached across turns
   return [{ type: "text", text: base, cache_control: { type: "ephemeral" } }];
 }
 
 // --- Core agent loop ---
-async function runAgent(prompt, customSystemPrompt, stream, googleAccessToken) {
+async function runAgent(prompt, customSystemPrompt, stream, googleAccessToken, notionAccessToken) {
   const startTime = Date.now();
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
   let cacheReadTokens = 0;
   let cacheCreationTokens = 0;
 
-  // Set per-request Google token for tool execution
+  // Set per-request tokens for tool execution
   currentGoogleAccessToken = googleAccessToken || null;
+  currentNotionAccessToken = notionAccessToken || null;
 
-  // Initialize system blocks on first call, if custom prompt provided, or if Google token status changed
+  // Initialize system blocks on first call, if custom prompt provided, or if token status changed
   const hasGoogle = !!googleAccessToken;
+  const hasNotion = !!notionAccessToken;
+  const currentText = systemBlocks?.[0]?.text || "";
   const needsRefresh = !systemBlocks || customSystemPrompt ||
-    (hasGoogle && !systemBlocks[0]?.text?.includes("google_drive_search")) ||
-    (!hasGoogle && systemBlocks[0]?.text?.includes("google_drive_search"));
+    (hasGoogle && !currentText.includes("google_drive_search")) ||
+    (!hasGoogle && currentText.includes("google_drive_search")) ||
+    (hasNotion && !currentText.includes("notion_search")) ||
+    (!hasNotion && currentText.includes("notion_search"));
   if (needsRefresh) {
-    systemBlocks = getSystemBlocks(customSystemPrompt, hasGoogle);
+    systemBlocks = getSystemBlocks(customSystemPrompt, hasGoogle, hasNotion);
   }
 
   // Add user message
@@ -885,7 +1179,7 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    const { prompt, systemPrompt, googleAccessToken } = parsed;
+    const { prompt, systemPrompt, googleAccessToken, notionAccessToken } = parsed;
     if (!prompt) {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "prompt is required" }));
@@ -895,7 +1189,7 @@ const server = createServer(async (req, res) => {
     // --- POST /message (non-streaming, backward compatible) ---
     if (req.url === "/message") {
       try {
-        const result = await enqueue(() => runAgent(prompt, systemPrompt, null, googleAccessToken));
+        const result = await enqueue(() => runAgent(prompt, systemPrompt, null, googleAccessToken, notionAccessToken));
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify(result));
       } catch (error) {
@@ -917,7 +1211,7 @@ const server = createServer(async (req, res) => {
       });
 
       try {
-        const result = await enqueue(() => runAgent(prompt, systemPrompt, res, googleAccessToken));
+        const result = await enqueue(() => runAgent(prompt, systemPrompt, res, googleAccessToken, notionAccessToken));
         sendSSE(res, "done", {
           result: result.result,
           cost_usd: result.cost_usd,
