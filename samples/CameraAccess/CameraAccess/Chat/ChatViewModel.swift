@@ -141,7 +141,22 @@ class ChatViewModel: ObservableObject {
         let coord = self.geminiSessionVM.coordinator
         let voiceAgent = coord?.voiceAgent
 
-        self.voiceConnectionState = self.geminiSessionVM.connectionState
+        let newConnectionState = self.geminiSessionVM.connectionState
+        // When reconnecting, update conversation context with all messages so far
+        if newConnectionState == .connecting && self.voiceConnectionState != .connecting {
+          let recentMessages = self.messages.suffix(20)
+          let contextLines = recentMessages.compactMap { msg -> String? in
+            let text = msg.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !text.isEmpty else { return nil }
+            switch msg.role {
+            case .user: return "User: \(text)"
+            case .assistant: return "Assistant: \(text)"
+            case .toolCall: return nil
+            }
+          }
+          self.geminiSessionVM.conversationContext = contextLines.isEmpty ? nil : contextLines.joined(separator: "\n")
+        }
+        self.voiceConnectionState = newConnectionState
         self.isModelSpeaking = voiceAgent?.isModelSpeaking ?? false
 
         let currentToolStatus = coord?.toolCallStatus ?? .idle

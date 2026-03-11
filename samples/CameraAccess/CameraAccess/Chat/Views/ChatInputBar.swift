@@ -101,7 +101,7 @@ struct ChatInputBar: View {
   private var voiceStatusText: String {
     switch voiceConnectionState {
     case .ready: return isModelSpeaking ? "Speaking" : "Listening"
-    case .connecting, .settingUp: return "Connecting..."
+    case .connecting, .settingUp: return "Reconnecting..."
     case .error: return "Error"
     case .disconnected: return "Disconnected"
     }
