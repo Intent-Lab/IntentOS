@@ -30,6 +30,12 @@ class ChatViewModel: ObservableObject {
   private var lastAITranscript: String = ""
   private var voiceSessionStartIndex: Int = 0
 
+  // Tool call status tracking during voice mode
+  private var lastToolCallStatus: ToolCallStatus = .idle
+  private var activeToolCallBubbleId: String?
+  private var activeAgentResultBubbleId: String?
+  private var lastAgentStreamingText: String = ""
+
   // Voice from chat always uses iPhone mode (speaker + mic co-located on phone)
   var streamingMode: StreamingMode = .iPhone
 
@@ -137,10 +143,92 @@ class ChatViewModel: ObservableObject {
 
         self.voiceConnectionState = self.geminiSessionVM.connectionState
         self.isModelSpeaking = voiceAgent?.isModelSpeaking ?? false
-        self.toolCallStatus = coord?.toolCallStatus ?? .idle
+
+        let currentToolStatus = coord?.toolCallStatus ?? .idle
+        self.toolCallStatus = currentToolStatus
 
         let newUser = voiceAgent?.userTranscript ?? ""
         let newAI = voiceAgent?.aiTranscript ?? ""
+
+        // --- Tool call status bubbles (agent execution during voice mode) ---
+        if currentToolStatus != self.lastToolCallStatus {
+          switch currentToolStatus {
+          case .executing(let toolName):
+            // Finalize current AI bubble before showing tool status
+            if let aiId = self.activeAIBubbleId {
+              self.updateMessage(id: aiId) { msg in msg.status = .complete }
+              self.activeAIBubbleId = nil
+            }
+            // Create a tool call status bubble
+            let bubble = ChatMessage(role: .toolCall, text: "Running: \(toolName)...", status: .streaming)
+            self.messages.append(bubble)
+            self.activeToolCallBubbleId = bubble.id
+            self.activeAgentResultBubbleId = nil
+            self.lastAgentStreamingText = ""
+
+          case .completed(let toolName):
+            // Update tool call bubble to show completion
+            if let toolId = self.activeToolCallBubbleId {
+              self.updateMessage(id: toolId) { msg in
+                msg.text = "Done: \(toolName)"
+                msg.status = .complete
+              }
+            }
+            // Finalize agent result bubble
+            if let resultId = self.activeAgentResultBubbleId {
+              self.updateMessage(id: resultId) { msg in msg.status = .complete }
+            }
+            self.activeToolCallBubbleId = nil
+            self.activeAgentResultBubbleId = nil
+            self.lastAgentStreamingText = ""
+            // Reset AI tracking so Gemini's summary appears as a new bubble
+            self.lastAITranscript = ""
+            self.activeAIBubbleId = nil
+
+          case .failed(let toolName, let error):
+            if let toolId = self.activeToolCallBubbleId {
+              self.updateMessage(id: toolId) { msg in
+                msg.text = "Failed: \(toolName) - \(error)"
+                msg.status = .error(error)
+              }
+            }
+            self.activeToolCallBubbleId = nil
+            self.activeAgentResultBubbleId = nil
+            self.lastAgentStreamingText = ""
+
+          case .cancelled(let toolName):
+            if let toolId = self.activeToolCallBubbleId {
+              self.updateMessage(id: toolId) { msg in
+                msg.text = "Cancelled: \(toolName)"
+                msg.status = .complete
+              }
+            }
+            self.activeToolCallBubbleId = nil
+            self.activeAgentResultBubbleId = nil
+            self.lastAgentStreamingText = ""
+
+          case .idle:
+            break
+          }
+          self.lastToolCallStatus = currentToolStatus
+        }
+
+        // --- Agent streaming text (show agent output while tool is executing) ---
+        if case .executing = currentToolStatus {
+          let agentText = self.agentBridge.streamingText
+          if !agentText.isEmpty && agentText != self.lastAgentStreamingText {
+            if self.activeAgentResultBubbleId == nil {
+              let bubble = ChatMessage(role: .assistant, text: agentText, status: .streaming)
+              self.messages.append(bubble)
+              self.activeAgentResultBubbleId = bubble.id
+            } else {
+              self.updateMessage(id: self.activeAgentResultBubbleId!) { msg in
+                msg.text = agentText
+              }
+            }
+            self.lastAgentStreamingText = agentText
+          }
+        }
 
         // --- Live user bubble ---
         if !newUser.isEmpty {
@@ -228,6 +316,12 @@ class ChatViewModel: ObservableObject {
     if let aiId = activeAIBubbleId {
       updateMessage(id: aiId) { msg in msg.status = .complete }
     }
+    if let toolId = activeToolCallBubbleId {
+      updateMessage(id: toolId) { msg in msg.status = .complete }
+    }
+    if let resultId = activeAgentResultBubbleId {
+      updateMessage(id: resultId) { msg in msg.status = .complete }
+    }
 
     RemoteLogger.shared.log("session:voice_end")
     geminiSessionVM.stopSession()
@@ -256,6 +350,10 @@ class ChatViewModel: ObservableObject {
     activeAIBubbleId = nil
     lastUserTranscript = ""
     lastAITranscript = ""
+    lastToolCallStatus = .idle
+    activeToolCallBubbleId = nil
+    activeAgentResultBubbleId = nil
+    lastAgentStreamingText = ""
   }
 
   func sendVideoFrame(_ image: UIImage) {
