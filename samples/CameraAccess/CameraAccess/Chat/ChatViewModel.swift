@@ -126,14 +126,19 @@ class ChatViewModel: ObservableObject {
 
     voiceObservation = Task { [weak self] in
       while !Task.isCancelled {
-        try? await Task.sleep(nanoseconds: 100_000_000)
+        try? await Task.sleep(nanoseconds: 50_000_000) // 50ms - read VoiceAgent directly
         guard !Task.isCancelled, let self else { break }
-        self.voiceConnectionState = self.geminiSessionVM.connectionState
-        self.isModelSpeaking = self.geminiSessionVM.isModelSpeaking
-        self.toolCallStatus = self.geminiSessionVM.toolCallStatus
 
-        let newUser = self.geminiSessionVM.userTranscript
-        let newAI = self.geminiSessionVM.aiTranscript
+        // Read directly from VoiceAgent to avoid the extra 100ms polling layer
+        let coord = self.geminiSessionVM.coordinator
+        let voiceAgent = coord?.voiceAgent
+
+        self.voiceConnectionState = self.geminiSessionVM.connectionState
+        self.isModelSpeaking = voiceAgent?.isModelSpeaking ?? false
+        self.toolCallStatus = coord?.toolCallStatus ?? .idle
+
+        let newUser = voiceAgent?.userTranscript ?? ""
+        let newAI = voiceAgent?.aiTranscript ?? ""
 
         // --- Live user bubble ---
         if !newUser.isEmpty {

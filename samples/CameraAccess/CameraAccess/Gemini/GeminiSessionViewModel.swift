@@ -12,7 +12,7 @@ class GeminiSessionViewModel: ObservableObject {
   @Published var toolCallStatus: ToolCallStatus = .idle
   @Published var agentConnectionState: AgentConnectionState = .notConfigured
 
-  private var coordinator: AgentCoordinator?
+  private(set) var coordinator: AgentCoordinator?
   private var stateObservation: Task<Void, Never>?
 
   var streamingMode: StreamingMode = .glasses
