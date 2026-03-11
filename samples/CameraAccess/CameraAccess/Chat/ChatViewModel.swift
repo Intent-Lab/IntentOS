@@ -46,6 +46,9 @@ class ChatViewModel: ObservableObject {
     messages.append(ChatMessage(role: .assistant, text: "", status: .streaming))
     RemoteLogger.shared.log("chat:user", data: ["text": text])
 
+    // Track the placeholder message ID so we only update that specific bubble
+    let placeholderId = messages.last!.id
+
     // Observe streaming text updates from the agent bridge
     streamingObservation?.cancel()
     streamingObservation = Task { [weak self] in
@@ -56,7 +59,7 @@ class ChatViewModel: ObservableObject {
         let current = self.agentBridge.streamingText
         if current != lastText && !current.isEmpty {
           lastText = current
-          self.updateLastAssistantMessage { msg in
+          self.updateMessage(id: placeholderId) { msg in
             msg.text = current
             msg.status = .streaming
           }
@@ -72,20 +75,20 @@ class ChatViewModel: ObservableObject {
 
       let result = await agentBridge.delegateTask(task: text)
 
-      // Stop streaming observation
+      // Stop streaming observation before final update
       self.streamingObservation?.cancel()
       self.streamingObservation = nil
 
       switch result {
       case .success(let response):
         RemoteLogger.shared.log("chat:agent", data: ["text": String(response.prefix(500))])
-        self.updateLastAssistantMessage { msg in
+        self.updateMessage(id: placeholderId) { msg in
           msg.text = response
           msg.status = .complete
         }
       case .failure(let error):
         RemoteLogger.shared.log("chat:error", data: ["error": error])
-        self.updateLastAssistantMessage { msg in
+        self.updateMessage(id: placeholderId) { msg in
           msg.text = "Failed to reach agent: \(error)"
           msg.status = .error(error)
         }
@@ -169,17 +172,27 @@ class ChatViewModel: ObservableObject {
   }
 
   func stopVoiceMode() {
+    // Cancel observation FIRST to prevent it from re-populating lastAITranscript
+    // from VoiceAgent's stale aiTranscript (not cleared on turnComplete)
+    voiceObservation?.cancel()
+    voiceObservation = nil
+
+    // Only append remaining transcripts if they haven't already been snapshotted
     if !lastUserTranscript.isEmpty {
-      voiceTranscripts.append((role: .user, text: lastUserTranscript))
+      let alreadyCaptured = voiceTranscripts.last(where: { $0.role == .user })?.text == lastUserTranscript
+      if !alreadyCaptured {
+        voiceTranscripts.append((role: .user, text: lastUserTranscript))
+      }
     }
     if !lastAITranscript.isEmpty {
-      voiceTranscripts.append((role: .assistant, text: lastAITranscript))
+      let alreadyCaptured = voiceTranscripts.last(where: { $0.role == .assistant })?.text == lastAITranscript
+      if !alreadyCaptured {
+        voiceTranscripts.append((role: .assistant, text: lastAITranscript))
+      }
     }
 
     RemoteLogger.shared.log("session:voice_end", data: ["turns": String(voiceTranscripts.count)])
     geminiSessionVM.stopSession()
-    voiceObservation?.cancel()
-    voiceObservation = nil
 
     // Bridge voice transcripts into agent's conversation history
     let contextMessages = voiceTranscripts.compactMap { transcript -> [String: String]? in
@@ -215,8 +228,8 @@ class ChatViewModel: ObservableObject {
 
   // MARK: - Private
 
-  private func updateLastAssistantMessage(_ update: (inout ChatMessage) -> Void) {
-    guard let idx = messages.lastIndex(where: { $0.role == .assistant }) else { return }
+  private func updateMessage(id: String, _ update: (inout ChatMessage) -> Void) {
+    guard let idx = messages.firstIndex(where: { $0.id == id }) else { return }
     update(&messages[idx])
   }
 }
