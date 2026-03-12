@@ -32,16 +32,29 @@ struct ChatTopBar: View {
     .padding(.vertical, 8)
   }
 
+  @ViewBuilder
   private func glassButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
-    Button(action: action) {
-      Image(systemName: icon)
-        .font(.system(size: 15, weight: .medium))
-        .foregroundStyle(.primary)
-        .frame(width: 36, height: 36)
-        .modifier(LiquidGlassModifier(shape: .circle, interactive: true))
+    if #available(iOS 26, *) {
+      Button(action: action) {
+        Image(systemName: icon)
+          .font(.system(size: 15, weight: .medium))
+          .foregroundStyle(.primary)
+          .frame(width: 36, height: 36)
+      }
+      .glassEffect(.regular.interactive(), in: .circle)
+      .accessibilityLabel(label)
+    } else {
+      Button(action: action) {
+        Image(systemName: icon)
+          .font(.system(size: 15, weight: .medium))
+          .foregroundStyle(.primary)
+          .frame(width: 36, height: 36)
+          .background(.ultraThinMaterial, in: Circle())
+          .overlay(Circle().strokeBorder(.quaternary, lineWidth: 0.5))
+      }
+      .buttonStyle(.plain)
+      .accessibilityLabel(label)
     }
-    .buttonStyle(.plain)
-    .accessibilityLabel(label)
   }
 }
 
