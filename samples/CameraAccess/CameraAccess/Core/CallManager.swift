@@ -106,19 +106,11 @@ extension CallManager: CXProviderDelegate {
   nonisolated func provider(_ provider: CXProvider, perform action: CXStartCallAction) {
     NSLog("[CallKit] Perform start call")
 
-    // Configure audio session (do NOT activate -- CallKit owns activation)
-    let session = AVAudioSession.sharedInstance()
-    do {
-      try session.setCategory(
-        .playAndRecord,
-        mode: .voiceChat,
-        options: [.allowBluetooth, .allowBluetoothA2DP, .defaultToSpeaker, .mixWithOthers]
-      )
-    } catch {
-      NSLog("[CallKit] Audio config failed: %@", error.localizedDescription)
-    }
+    // Do NOT configure the audio session here -- it disrupts the Bluetooth connection
+    // to the glasses. AudioManager.setupAudioSession() handles configuration later,
+    // after CallKit's didActivate fires.
 
-    // Report connecting -> connected
+    // Report connecting
     provider.reportOutgoingCall(with: action.callUUID, startedConnectingAt: Date())
 
     Task { @MainActor in
