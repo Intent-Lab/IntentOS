@@ -13,13 +13,12 @@ struct ChatTopBar: View {
         .font(AppFont.headline)
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(.quaternary, lineWidth: 0.5))
+        .modifier(LiquidGlassModifier(shape: .capsule))
 
       Spacer()
 
-      // Right-side action buttons as glass pills
-      HStack(spacing: 6) {
+      // Right-side action buttons as glass circles
+      GlassButtonGroup {
         if showGlassesButton {
           glassButton(icon: "eyeglasses", label: "Open glasses streaming", action: onGlassesTapped)
         }
@@ -39,9 +38,61 @@ struct ChatTopBar: View {
         .font(.system(size: 15, weight: .medium))
         .foregroundStyle(.primary)
         .frame(width: 36, height: 36)
-        .background(.ultraThinMaterial, in: Circle())
-        .overlay(Circle().strokeBorder(.quaternary, lineWidth: 0.5))
+        .modifier(LiquidGlassModifier(shape: .circle))
     }
     .accessibilityLabel(label)
+  }
+}
+
+// MARK: - Liquid Glass Helpers
+
+enum GlassShape {
+  case capsule
+  case circle
+}
+
+/// Applies iOS 26 Liquid Glass when available, falls back to ultraThinMaterial
+struct LiquidGlassModifier: ViewModifier {
+  let shape: GlassShape
+
+  func body(content: Content) -> some View {
+    if #available(iOS 26, *) {
+      switch shape {
+      case .capsule:
+        content.glassEffect(.regular, in: .capsule)
+      case .circle:
+        content.glassEffect(.regular, in: .circle)
+      }
+    } else {
+      switch shape {
+      case .capsule:
+        content
+          .background(.ultraThinMaterial, in: Capsule())
+          .overlay(Capsule().strokeBorder(.quaternary, lineWidth: 0.5))
+      case .circle:
+        content
+          .background(.ultraThinMaterial, in: Circle())
+          .overlay(Circle().strokeBorder(.quaternary, lineWidth: 0.5))
+      }
+    }
+  }
+}
+
+/// Wraps children in GlassEffectContainer on iOS 26+
+struct GlassButtonGroup<Content: View>: View {
+  @ViewBuilder let content: Content
+
+  var body: some View {
+    if #available(iOS 26, *) {
+      GlassEffectContainer {
+        HStack(spacing: 6) {
+          content
+        }
+      }
+    } else {
+      HStack(spacing: 6) {
+        content
+      }
+    }
   }
 }

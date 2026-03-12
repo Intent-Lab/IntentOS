@@ -29,7 +29,6 @@ struct ChatInputBar: View {
           .font(.system(size: 16, weight: .medium))
           .foregroundStyle(.secondary)
           .frame(width: 32, height: 32)
-          .background(.ultraThinMaterial, in: Circle())
       }
       .accessibilityLabel("Start voice mode")
 
@@ -56,8 +55,7 @@ struct ChatInputBar: View {
     .padding(.leading, 8)
     .padding(.trailing, canSend ? 8 : 12)
     .padding(.vertical, 8)
-    .background(.ultraThinMaterial, in: Capsule())
-    .overlay(Capsule().strokeBorder(.quaternary, lineWidth: 0.5))
+    .modifier(LiquidGlassModifier(shape: .capsule))
     .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
     .padding(.horizontal, 16)
     .padding(.bottom, 8)
@@ -100,8 +98,7 @@ struct ChatInputBar: View {
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 10)
-    .background(.ultraThinMaterial, in: Capsule())
-    .overlay(Capsule().strokeBorder(.quaternary, lineWidth: 0.5))
+    .modifier(LiquidGlassModifier(shape: .capsule))
     .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
     .padding(.horizontal, 16)
     .padding(.bottom, 8)
