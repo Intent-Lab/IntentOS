@@ -38,8 +38,9 @@ struct ChatTopBar: View {
         .font(.system(size: 15, weight: .medium))
         .foregroundStyle(.primary)
         .frame(width: 36, height: 36)
-        .modifier(LiquidGlassModifier(shape: .circle))
+        .modifier(LiquidGlassModifier(shape: .circle, interactive: true))
     }
+    .buttonStyle(.plain)
     .accessibilityLabel(label)
   }
 }
@@ -54,14 +55,16 @@ enum GlassShape {
 /// Applies iOS 26 Liquid Glass when available, falls back to ultraThinMaterial
 struct LiquidGlassModifier: ViewModifier {
   let shape: GlassShape
+  var interactive: Bool = false
 
   func body(content: Content) -> some View {
     if #available(iOS 26, *) {
+      let glass: Glass = interactive ? .regular.interactive() : .regular
       switch shape {
       case .capsule:
-        content.glassEffect(.regular, in: .capsule)
+        content.glassEffect(glass, in: .capsule)
       case .circle:
-        content.glassEffect(.regular, in: .circle)
+        content.glassEffect(glass, in: .circle)
       }
     } else {
       switch shape {

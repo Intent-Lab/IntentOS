@@ -94,6 +94,7 @@ struct ChatInputBar: View {
           .frame(width: 32, height: 32)
           .background(.red, in: Circle())
       }
+      .buttonStyle(.plain)
       .accessibilityLabel("End voice mode")
     }
     .padding(.horizontal, 16)
