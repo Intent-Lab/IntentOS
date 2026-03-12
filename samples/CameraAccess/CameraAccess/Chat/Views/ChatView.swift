@@ -27,8 +27,6 @@ struct ChatView: View {
         onSettingsTapped: { showSettings = true }
       )
 
-      Divider()
-
       ZStack(alignment: .bottom) {
         ChatMessageList(messages: viewModel.messages)
           .padding(.bottom, 56)

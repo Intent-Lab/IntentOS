@@ -8,38 +8,40 @@ struct ChatTopBar: View {
 
   var body: some View {
     HStack {
+      // Title as glass pill (left)
       Text("Matcha")
         .font(AppFont.headline)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(.quaternary, lineWidth: 0.5))
 
       Spacer()
 
-      if showGlassesButton {
-        Button(action: onGlassesTapped) {
-          Image(systemName: "eyeglasses")
-            .font(.body)
-            .foregroundStyle(.primary)
+      // Right-side action buttons as glass pills
+      HStack(spacing: 6) {
+        if showGlassesButton {
+          glassButton(icon: "eyeglasses", label: "Open glasses streaming", action: onGlassesTapped)
         }
-        .accessibilityLabel("Open glasses streaming")
-        .padding(.trailing, 8)
-      }
 
-      Button(action: onGalleryTapped) {
-        Image(systemName: "photo.on.rectangle")
-          .font(.body)
-          .foregroundStyle(.primary)
-      }
-      .accessibilityLabel("Photo gallery")
-      .padding(.trailing, 8)
+        glassButton(icon: "photo.on.rectangle", label: "Photo gallery", action: onGalleryTapped)
 
-      Button(action: onSettingsTapped) {
-        Image(systemName: "gearshape")
-          .font(.body)
-          .foregroundStyle(.primary)
+        glassButton(icon: "gearshape", label: "Settings", action: onSettingsTapped)
       }
-      .accessibilityLabel("Settings")
     }
     .padding(.horizontal, 16)
-    .padding(.vertical, 12)
-    .background(.background)
+    .padding(.vertical, 8)
+  }
+
+  private func glassButton(icon: String, label: String, action: @escaping () -> Void) -> some View {
+    Button(action: action) {
+      Image(systemName: icon)
+        .font(.system(size: 15, weight: .medium))
+        .foregroundStyle(.primary)
+        .frame(width: 36, height: 36)
+        .background(.ultraThinMaterial, in: Circle())
+        .overlay(Circle().strokeBorder(.quaternary, lineWidth: 0.5))
+    }
+    .accessibilityLabel(label)
   }
 }
