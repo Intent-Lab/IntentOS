@@ -51,7 +51,7 @@ struct ChatMessageList: View {
         .font(.system(size: 48))
         .foregroundStyle(.tertiary)
       Text("How can I help?")
-        .font(.title3)
+        .font(AppFont.title3)
         .foregroundStyle(.secondary)
       Spacer()
     }

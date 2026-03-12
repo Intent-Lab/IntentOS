@@ -82,6 +82,16 @@
 		<string>bluetooth-peripheral</string>
 		<string>external-accessory</string>
 	</array>
+	<key>UIAppFonts</key>
+	<array>
+		<string>TestTiemposText-Regular.otf</string>
+		<string>TestTiemposText-RegularItalic.otf</string>
+		<string>TestTiemposText-Medium.otf</string>
+		<string>TestTiemposText-Semibold.otf</string>
+		<string>TestTiemposText-Bold.otf</string>
+		<string>TestTiemposFine-Regular.otf</string>
+		<string>TestTiemposFine-Semibold.otf</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>

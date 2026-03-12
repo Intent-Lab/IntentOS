@@ -8,7 +8,7 @@ struct ChatTopBar: View {
   var body: some View {
     HStack {
       Text("Matcha")
-        .font(.headline)
+        .font(AppFont.headline)
 
       Spacer()
 

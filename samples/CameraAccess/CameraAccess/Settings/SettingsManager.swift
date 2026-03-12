@@ -15,6 +15,7 @@ final class SettingsManager {
     case userId
     case agentSessionKey
     case agentSessionCreatedAt
+    case fontTheme
   }
 
   private init() {}
@@ -64,6 +65,13 @@ final class SettingsManager {
     let id = UUID().uuidString
     defaults.set(id, forKey: Key.userId.rawValue)
     return id
+  }
+
+  // MARK: - Font Theme
+
+  var fontTheme: String {
+    get { defaults.string(forKey: Key.fontTheme.rawValue) ?? FontTheme.tiempos.rawValue }
+    set { defaults.set(newValue, forKey: Key.fontTheme.rawValue) }
   }
 
   // MARK: - Session Persistence

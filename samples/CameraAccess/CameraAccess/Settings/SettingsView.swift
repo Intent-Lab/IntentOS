@@ -12,6 +12,7 @@ struct SettingsView: View {
   @State private var agentToken: String = ""
   @State private var webrtcSignalingURL: String = ""
   @State private var speakerOutputEnabled: Bool = false
+  @State private var selectedFontTheme: FontTheme = .tiempos
   @State private var showResetConfirmation = false
 
   var body: some View {
@@ -20,7 +21,7 @@ struct SettingsView: View {
         Section(header: Text("Gemini API")) {
           VStack(alignment: .leading, spacing: 4) {
             Text("API Key")
-              .font(.caption)
+              .font(AppFont.caption)
               .foregroundColor(.secondary)
             TextField("Enter Gemini API key", text: $geminiAPIKey)
               .autocapitalization(.none)
@@ -38,7 +39,7 @@ struct SettingsView: View {
         Section(header: Text("Agent"), footer: Text("Connect to the Matcha agent API (E2B + Claude Agent SDK) for task execution.")) {
           VStack(alignment: .leading, spacing: 4) {
             Text("Base URL")
-              .font(.caption)
+              .font(AppFont.caption)
               .foregroundStyle(.secondary)
             TextField("https://your-deployment.vercel.app", text: $agentBaseURL)
               .autocapitalization(.none)
@@ -49,7 +50,7 @@ struct SettingsView: View {
 
           VStack(alignment: .leading, spacing: 4) {
             Text("API Token")
-              .font(.caption)
+              .font(AppFont.caption)
               .foregroundStyle(.secondary)
             TextField("Shared secret token", text: $agentToken)
               .autocapitalization(.none)
@@ -63,9 +64,9 @@ struct SettingsView: View {
             HStack {
               VStack(alignment: .leading, spacing: 2) {
                 Text(googleAuth.userName ?? "Google Account")
-                  .font(.body)
+                  .font(AppFont.body)
                 Text(googleAuth.userEmail ?? "")
-                  .font(.caption)
+                  .font(AppFont.caption)
                   .foregroundStyle(.secondary)
               }
               Spacer()
@@ -88,9 +89,9 @@ struct SettingsView: View {
             HStack {
               VStack(alignment: .leading, spacing: 2) {
                 Text(notionAuth.workspaceName ?? "Notion Workspace")
-                  .font(.body)
+                  .font(AppFont.body)
                 Text("Connected")
-                  .font(.caption)
+                  .font(AppFont.caption)
                   .foregroundStyle(.secondary)
               }
               Spacer()
@@ -111,7 +112,7 @@ struct SettingsView: View {
         Section(header: Text("WebRTC")) {
           VStack(alignment: .leading, spacing: 4) {
             Text("Signaling URL")
-              .font(.caption)
+              .font(AppFont.caption)
               .foregroundColor(.secondary)
             TextField("wss://your-server.example.com", text: $webrtcSignalingURL)
               .autocapitalization(.none)
@@ -123,6 +124,15 @@ struct SettingsView: View {
 
         Section(header: Text("Audio"), footer: Text("Route audio output to the iPhone speaker instead of glasses. Useful for demos where others need to hear.")) {
           Toggle("Speaker Output", isOn: $speakerOutputEnabled)
+        }
+
+        Section(header: Text("Font"), footer: Text("Switch between system font (SF Pro) and Tiempos serif font.")) {
+          Picker("Font Theme", selection: $selectedFontTheme) {
+            ForEach(FontTheme.allCases, id: \.self) { theme in
+              Text(theme.rawValue).tag(theme)
+            }
+          }
+          .pickerStyle(.segmented)
         }
 
         Section {
@@ -170,6 +180,7 @@ struct SettingsView: View {
     agentToken = settings.agentToken
     webrtcSignalingURL = settings.webrtcSignalingURL
     speakerOutputEnabled = settings.speakerOutputEnabled
+    selectedFontTheme = FontTheme(rawValue: settings.fontTheme) ?? .tiempos
   }
 
   private func save() {
@@ -179,5 +190,6 @@ struct SettingsView: View {
     settings.agentToken = agentToken.trimmingCharacters(in: .whitespacesAndNewlines)
     settings.webrtcSignalingURL = webrtcSignalingURL.trimmingCharacters(in: .whitespacesAndNewlines)
     settings.speakerOutputEnabled = speakerOutputEnabled
+    settings.fontTheme = selectedFontTheme.rawValue
   }
 }

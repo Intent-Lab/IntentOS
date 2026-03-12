@@ -67,7 +67,7 @@ struct HomeScreenView: View {
 
         VStack(spacing: 20) {
           Text("You'll be redirected to the Meta AI app to confirm your connection.")
-            .font(.system(size: 14))
+            .font(AppFont.footnote)
             .foregroundColor(.gray)
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
@@ -117,11 +117,11 @@ struct HomeTipItemView: View {
 
       VStack(alignment: .leading, spacing: 6) {
         Text(title)
-          .font(.system(size: 18, weight: .semibold))
+          .font(AppFont.bodySemibold)
           .foregroundColor(.black)
 
         Text(text)
-          .font(.system(size: 15))
+          .font(AppFont.subheadline)
           .foregroundColor(.gray)
       }
       Spacer()

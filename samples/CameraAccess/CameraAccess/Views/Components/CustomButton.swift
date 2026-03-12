@@ -47,7 +47,7 @@ struct CustomButton: View {
   var body: some View {
     Button(action: action) {
       Text(title)
-        .font(.system(size: 15, weight: .semibold))
+        .font(AppFont.bodySemibold)
         .foregroundColor(style.foregroundColor)
         .frame(maxWidth: .infinity)
         .frame(height: 56)

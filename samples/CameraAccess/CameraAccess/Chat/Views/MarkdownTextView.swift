@@ -73,7 +73,7 @@ struct MarkdownTextView: View {
         Text("\u{2022}")
           .foregroundStyle(foregroundColor)
         inlineMarkdown(content)
-          .font(.body)
+          .font(AppFont.body)
           .foregroundStyle(foregroundColor)
       }
       .padding(.leading, 8)
@@ -81,17 +81,17 @@ struct MarkdownTextView: View {
     case .numbered(let prefix, let content):
       HStack(alignment: .firstTextBaseline, spacing: 4) {
         Text(prefix)
-          .font(.body)
+          .font(AppFont.body)
           .foregroundStyle(foregroundColor.opacity(0.7))
           .monospacedDigit()
         inlineMarkdown(content)
-          .font(.body)
+          .font(AppFont.body)
           .foregroundStyle(foregroundColor)
       }
 
     case .text(let content):
       inlineMarkdown(content)
-        .font(.body)
+        .font(AppFont.body)
         .foregroundStyle(foregroundColor)
 
     case .separator:
@@ -106,10 +106,10 @@ struct MarkdownTextView: View {
 
   private func headingFont(level: Int) -> Font {
     switch level {
-    case 1: return .title2
-    case 2: return .title3
-    case 3: return .headline
-    default: return .subheadline
+    case 1: return AppFont.title2
+    case 2: return AppFont.title3
+    case 3: return AppFont.headline
+    default: return AppFont.subheadline
     }
   }
 

@@ -29,7 +29,7 @@ struct ChatInputBar: View {
       .accessibilityLabel("Start voice mode")
 
       TextField("Message...", text: $text, axis: .vertical)
-        .font(.body)
+        .font(AppFont.body)
         .textFieldStyle(.plain)
         .focused(isInputFocused)
         .lineLimit(1...5)
@@ -59,7 +59,7 @@ struct ChatInputBar: View {
           .frame(width: 8, height: 8)
 
         Text(voiceStatusText)
-          .font(.subheadline)
+          .font(AppFont.subheadline)
           .foregroundStyle(.secondary)
       }
 

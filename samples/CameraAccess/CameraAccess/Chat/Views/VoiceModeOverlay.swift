@@ -21,13 +21,13 @@ struct VoiceModeOverlay: View {
         VStack(spacing: 8) {
           if !viewModel.userTranscript.isEmpty {
             Text(viewModel.userTranscript)
-              .font(.subheadline)
+              .font(AppFont.subheadline)
               .foregroundStyle(.white.opacity(0.7))
               .multilineTextAlignment(.center)
           }
           if !viewModel.aiTranscript.isEmpty {
             Text(viewModel.aiTranscript)
-              .font(.body.weight(.medium))
+              .font(AppFont.bodyMedium)
               .foregroundStyle(.white)
               .multilineTextAlignment(.center)
           }

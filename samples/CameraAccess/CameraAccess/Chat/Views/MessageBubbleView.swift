@@ -29,7 +29,7 @@ struct MessageBubbleView: View {
     HStack(alignment: .bottom, spacing: 4) {
       if message.text.isEmpty && message.status == .streaming {
         Text(" ")
-          .font(.body)
+          .font(AppFont.body)
           .foregroundStyle(.white)
       } else {
         MarkdownTextView(
@@ -53,7 +53,7 @@ struct MessageBubbleView: View {
     HStack(alignment: .bottom, spacing: 4) {
       if message.text.isEmpty && message.status == .streaming {
         Text(" ")
-          .font(.body)
+          .font(AppFont.body)
           .foregroundStyle(.primary)
       } else {
         MarkdownTextView(
@@ -86,7 +86,7 @@ struct MessageBubbleView: View {
           .font(.caption2)
       }
       Text(message.text)
-        .font(.caption)
+        .font(AppFont.caption)
         .foregroundStyle(.secondary)
         .lineLimit(1)
     }
