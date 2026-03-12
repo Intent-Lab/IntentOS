@@ -5,6 +5,7 @@ struct ChatView: View {
   let wearables: WearablesInterface
   @ObservedObject private var wearablesVM: WearablesViewModel
   @StateObject private var viewModel = ChatViewModel()
+  @StateObject private var streamVM: StreamSessionViewModel
 
   @State private var showSettings = false
   @State private var showGlassesStream = false
@@ -13,6 +14,7 @@ struct ChatView: View {
   init(wearables: WearablesInterface, wearablesVM: WearablesViewModel) {
     self.wearables = wearables
     self.wearablesVM = wearablesVM
+    self._streamVM = StateObject(wrappedValue: StreamSessionViewModel(wearables: wearables))
   }
 
   var body: some View {
@@ -49,12 +51,22 @@ struct ChatView: View {
         }
       )
     }
+    .task {
+      // Wire glasses frames to the shared GeminiSessionViewModel
+      streamVM.geminiSessionVM = viewModel.geminiSessionVM
+    }
+    .onChange(of: viewModel.isVoiceModeActive) { isActive in
+      if isActive && streamVM.hasActiveDevice && !streamVM.isStreaming {
+        // Auto-start glasses streaming when voice mode begins and glasses are connected
+        Task { await streamVM.handleStartStreaming() }
+      }
+    }
     .sheet(isPresented: $showSettings) {
       SettingsView()
     }
     .fullScreenCover(isPresented: $showGlassesStream) {
       ZStack(alignment: .topLeading) {
-        StreamSessionView(wearables: wearables, wearablesVM: wearablesVM, geminiVM: viewModel.geminiSessionVM)
+        StreamSessionView(wearables: wearables, wearablesVM: wearablesVM, streamVM: streamVM, geminiVM: viewModel.geminiSessionVM)
 
         Button {
           showGlassesStream = false

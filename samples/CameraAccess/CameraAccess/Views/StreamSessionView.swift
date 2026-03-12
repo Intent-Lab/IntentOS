@@ -18,14 +18,14 @@ import UIKit
 struct StreamSessionView: View {
   let wearables: WearablesInterface
   @ObservedObject private var wearablesViewModel: WearablesViewModel
-  @StateObject private var viewModel: StreamSessionViewModel
+  @ObservedObject private var viewModel: StreamSessionViewModel
   @ObservedObject private var geminiVM: GeminiSessionViewModel
   @StateObject private var webrtcVM = WebRTCSessionViewModel()
 
-  init(wearables: WearablesInterface, wearablesVM: WearablesViewModel, geminiVM: GeminiSessionViewModel) {
+  init(wearables: WearablesInterface, wearablesVM: WearablesViewModel, streamVM: StreamSessionViewModel, geminiVM: GeminiSessionViewModel) {
     self.wearables = wearables
     self.wearablesViewModel = wearablesVM
-    self._viewModel = StateObject(wrappedValue: StreamSessionViewModel(wearables: wearables))
+    self._viewModel = ObservedObject(wrappedValue: streamVM)
     self._geminiVM = ObservedObject(wrappedValue: geminiVM)
   }
 
