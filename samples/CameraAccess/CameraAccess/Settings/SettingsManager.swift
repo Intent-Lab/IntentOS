@@ -1,5 +1,10 @@
 import Foundation
 
+enum AgentBackend: String, CaseIterable {
+  case e2b = "E2B"
+  case openClaw = "OpenClaw"
+}
+
 final class SettingsManager {
   static let shared = SettingsManager()
 
@@ -8,8 +13,12 @@ final class SettingsManager {
   private enum Key: String {
     case geminiAPIKey
     case geminiSystemPrompt
+    case agentBackend
     case agentBaseURL
     case agentToken
+    case openClawHost
+    case openClawPort
+    case openClawGatewayToken
     case webrtcSignalingURL
     case speakerOutputEnabled
     case userId
@@ -34,6 +43,16 @@ final class SettingsManager {
 
   // MARK: - Agent
 
+  var agentBackend: AgentBackend {
+    get {
+      guard let raw = defaults.string(forKey: Key.agentBackend.rawValue),
+            let backend = AgentBackend(rawValue: raw) else { return .e2b }
+      return backend
+    }
+    set { defaults.set(newValue.rawValue, forKey: Key.agentBackend.rawValue) }
+  }
+
+  // E2B settings
   var agentBaseURL: String {
     get { defaults.string(forKey: Key.agentBaseURL.rawValue) ?? Secrets.agentBaseURL }
     set { defaults.set(newValue, forKey: Key.agentBaseURL.rawValue) }
@@ -42,6 +61,25 @@ final class SettingsManager {
   var agentToken: String {
     get { defaults.string(forKey: Key.agentToken.rawValue) ?? Secrets.agentToken }
     set { defaults.set(newValue, forKey: Key.agentToken.rawValue) }
+  }
+
+  // OpenClaw settings
+  var openClawHost: String {
+    get { defaults.string(forKey: Key.openClawHost.rawValue) ?? "http://192.168.1.100" }
+    set { defaults.set(newValue, forKey: Key.openClawHost.rawValue) }
+  }
+
+  var openClawPort: Int {
+    get {
+      let stored = defaults.integer(forKey: Key.openClawPort.rawValue)
+      return stored != 0 ? stored : 18789
+    }
+    set { defaults.set(newValue, forKey: Key.openClawPort.rawValue) }
+  }
+
+  var openClawGatewayToken: String {
+    get { defaults.string(forKey: Key.openClawGatewayToken.rawValue) ?? "" }
+    set { defaults.set(newValue, forKey: Key.openClawGatewayToken.rawValue) }
   }
 
   // MARK: - WebRTC
@@ -89,7 +127,9 @@ final class SettingsManager {
   // MARK: - Reset
 
   func resetAll() {
-    for key in [Key.geminiAPIKey, .geminiSystemPrompt, .agentBaseURL, .agentToken,
+    for key in [Key.geminiAPIKey, .geminiSystemPrompt, .agentBackend,
+                .agentBaseURL, .agentToken,
+                .openClawHost, .openClawPort, .openClawGatewayToken,
                 .webrtcSignalingURL, .speakerOutputEnabled,
                 .agentSessionKey, .agentSessionCreatedAt] {
       defaults.removeObject(forKey: key.rawValue)

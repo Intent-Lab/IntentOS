@@ -40,14 +40,18 @@ class AgentBridge: ObservableObject {
   private let pingSession: URLSession
   private var sessionKey: String
   private var conversationHistory: [[String: String]] = []
-  private let maxHistoryTurns = 3
   private static let sessionMaxAge: TimeInterval = 86400 // 24 hours
 
   // Direct E2B sandbox connection
   private var sandboxUrl: String?
   private var sandboxAuthToken: String?
 
+  /// Which backend this bridge is using (read once at init, stable for lifetime)
+  let backend: AgentBackend
+
   init() {
+    self.backend = SettingsManager.shared.agentBackend
+
     let config = URLSessionConfiguration.default
     config.timeoutIntervalForRequest = 120
     self.session = URLSession(configuration: config)
@@ -61,17 +65,30 @@ class AgentBridge: ObservableObject {
     let age = Date().timeIntervalSince1970 - settings.agentSessionCreatedAt
     if let existingKey = settings.agentSessionKey, age < AgentBridge.sessionMaxAge {
       self.sessionKey = existingKey
-      NSLog("[Agent] Resumed session: %@", existingKey)
+      NSLog("[Agent:%@] Resumed session: %@", backend.rawValue, existingKey)
     } else {
       let newKey = AgentBridge.newSessionKey()
       self.sessionKey = newKey
       settings.agentSessionKey = newKey
       settings.agentSessionCreatedAt = Date().timeIntervalSince1970
-      NSLog("[Agent] New session: %@", newKey)
+      NSLog("[Agent:%@] New session: %@", backend.rawValue, newKey)
     }
   }
 
+  private var maxHistoryTurns: Int {
+    backend == .openClaw ? 10 : 3
+  }
+
   func checkConnection() async {
+    switch backend {
+    case .e2b:
+      await checkE2BConnection()
+    case .openClaw:
+      await checkOpenClawConnection()
+    }
+  }
+
+  private func checkE2BConnection() async {
     guard AgentConfig.isConfigured else {
       connectionState = .notConfigured
       return
@@ -88,13 +105,42 @@ class AgentBridge: ObservableObject {
       let (_, response) = try await pingSession.data(for: request)
       if let http = response as? HTTPURLResponse, (200...499).contains(http.statusCode) {
         connectionState = .connected
-        NSLog("[Agent] Gateway reachable (HTTP %d)", http.statusCode)
+        NSLog("[Agent:E2B] Gateway reachable (HTTP %d)", http.statusCode)
       } else {
         connectionState = .unreachable("Unexpected response")
       }
     } catch {
       connectionState = .unreachable(error.localizedDescription)
-      NSLog("[Agent] Gateway unreachable: %@", error.localizedDescription)
+      NSLog("[Agent:E2B] Gateway unreachable: %@", error.localizedDescription)
+    }
+  }
+
+  private func checkOpenClawConnection() async {
+    let settings = SettingsManager.shared
+    guard !settings.openClawHost.isEmpty, !settings.openClawGatewayToken.isEmpty else {
+      connectionState = .notConfigured
+      return
+    }
+    connectionState = .checking
+    let base = "\(settings.openClawHost):\(settings.openClawPort)"
+    guard let url = URL(string: "\(base)/v1/chat/completions") else {
+      connectionState = .unreachable("Invalid URL")
+      return
+    }
+    var request = URLRequest(url: url)
+    request.httpMethod = "GET"
+    request.setValue("Bearer \(settings.openClawGatewayToken)", forHTTPHeaderField: "Authorization")
+    do {
+      let (_, response) = try await pingSession.data(for: request)
+      if let http = response as? HTTPURLResponse, (200...499).contains(http.statusCode) {
+        connectionState = .connected
+        NSLog("[Agent:OpenClaw] Gateway reachable (HTTP %d)", http.statusCode)
+      } else {
+        connectionState = .unreachable("Unexpected response")
+      }
+    } catch {
+      connectionState = .unreachable(error.localizedDescription)
+      NSLog("[Agent:OpenClaw] Gateway unreachable: %@", error.localizedDescription)
     }
   }
 
@@ -116,18 +162,19 @@ class AgentBridge: ObservableObject {
   }
 
   /// Inject prior conversation context (e.g. voice transcripts) into both
-  /// the iOS-side history (for Vercel fallback) and the E2B sandbox (for direct path)
+  /// the iOS-side history (for Vercel fallback / OpenClaw) and the E2B sandbox (for direct path)
   func injectContext(_ messages: [[String: String]]) {
-    // Update iOS-side history (used by Vercel fallback)
     conversationHistory.insert(contentsOf: messages, at: 0)
     if conversationHistory.count > maxHistoryTurns * 2 {
       conversationHistory = Array(conversationHistory.suffix(maxHistoryTurns * 2))
     }
-    NSLog("[Agent] Injected %d context messages (total: %d)", messages.count, conversationHistory.count)
+    NSLog("[Agent:%@] Injected %d context messages (total: %d)", backend.rawValue, messages.count, conversationHistory.count)
 
-    // Also inject into E2B sandbox's in-memory conversation state
-    Task {
-      await injectContextToSandbox(messages)
+    // Also inject into E2B sandbox's in-memory conversation state (E2B only)
+    if backend == .e2b {
+      Task {
+        await injectContextToSandbox(messages)
+      }
     }
   }
 
@@ -343,6 +390,62 @@ class AgentBridge: ObservableObject {
     return raw
   }
 
+  // MARK: - OpenClaw
+
+  private func sendViaOpenClaw(prompt: String) async throws -> String {
+    let settings = SettingsManager.shared
+    let base = "\(settings.openClawHost):\(settings.openClawPort)"
+    guard let url = URL(string: "\(base)/v1/chat/completions") else {
+      throw AgentError.invalidURL
+    }
+
+    conversationHistory.append(["role": "user", "content": prompt])
+    if conversationHistory.count > maxHistoryTurns * 2 {
+      conversationHistory = Array(conversationHistory.suffix(maxHistoryTurns * 2))
+    }
+
+    var request = URLRequest(url: url)
+    request.httpMethod = "POST"
+    request.setValue("Bearer \(settings.openClawGatewayToken)", forHTTPHeaderField: "Authorization")
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue(sessionKey, forHTTPHeaderField: "x-openclaw-session-key")
+
+    let body: [String: Any] = [
+      "model": "openclaw",
+      "messages": conversationHistory,
+      "stream": false,
+    ]
+    request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+    NSLog("[Agent:OpenClaw] Sending %d messages in conversation", conversationHistory.count)
+
+    let (data, response) = try await session.data(for: request)
+    guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+      let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+      throw AgentError.httpError(code)
+    }
+
+    // Mark thinking as done
+    if let idx = agentSteps.firstIndex(where: { $0.type == .thinking && !$0.isDone }) {
+      agentSteps[idx].isDone = true
+    }
+
+    if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+       let choices = json["choices"] as? [[String: Any]],
+       let first = choices.first,
+       let message = first["message"] as? [String: Any],
+       let content = message["content"] as? String {
+      conversationHistory.append(["role": "assistant", "content": content])
+      streamingText = content
+      return content
+    }
+
+    let raw = String(data: data, encoding: .utf8) ?? "OK"
+    conversationHistory.append(["role": "assistant", "content": raw])
+    streamingText = raw
+    return raw
+  }
+
   // MARK: - Public API
 
   func delegateTask(
@@ -354,16 +457,21 @@ class AgentBridge: ObservableObject {
     agentSteps = [AgentStep(type: .thinking, label: "Thinking...")]
 
     do {
-      let content = try await sendDirectOrFallback(prompt: task)
-      NSLog("[Agent] Result: %@", String(content.prefix(200)))
-      // Mark thinking as done
+      let content: String
+      switch backend {
+      case .e2b:
+        content = try await sendDirectOrFallback(prompt: task)
+      case .openClaw:
+        content = try await sendViaOpenClaw(prompt: task)
+      }
+      NSLog("[Agent:%@] Result: %@", backend.rawValue, String(content.prefix(200)))
       if let idx = agentSteps.firstIndex(where: { $0.type == .thinking && !$0.isDone }) {
         agentSteps[idx].isDone = true
       }
       lastToolCallStatus = .completed(toolName)
       return .success(content)
     } catch {
-      NSLog("[Agent] Error: %@", error.localizedDescription)
+      NSLog("[Agent:%@] Error: %@", backend.rawValue, error.localizedDescription)
       lastToolCallStatus = .failed(toolName, error.localizedDescription)
       return .failure("Agent error: \(error.localizedDescription)")
     }

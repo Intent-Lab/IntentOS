@@ -8,8 +8,12 @@ struct SettingsView: View {
 
   @State private var geminiAPIKey: String = ""
   @State private var geminiSystemPrompt: String = ""
+  @State private var selectedBackend: AgentBackend = .e2b
   @State private var agentBaseURL: String = ""
   @State private var agentToken: String = ""
+  @State private var openClawHost: String = ""
+  @State private var openClawPort: String = ""
+  @State private var openClawGatewayToken: String = ""
   @State private var webrtcSignalingURL: String = ""
   @State private var speakerOutputEnabled: Bool = false
   @State private var selectedFontTheme: FontTheme = .tiempos
@@ -36,26 +40,71 @@ struct SettingsView: View {
             .frame(minHeight: 200)
         }
 
-        Section(header: Text("Agent"), footer: Text("Connect to the Matcha agent API (E2B + Claude Agent SDK) for task execution.")) {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Base URL")
-              .font(AppFont.caption)
-              .foregroundStyle(.secondary)
-            TextField("https://your-deployment.vercel.app", text: $agentBaseURL)
-              .autocapitalization(.none)
-              .disableAutocorrection(true)
-              .keyboardType(.URL)
-              .font(.system(.body, design: .monospaced))
+        Section(header: Text("Agent Backend")) {
+          Picker("Backend", selection: $selectedBackend) {
+            ForEach(AgentBackend.allCases, id: \.self) { backend in
+              Text(backend.rawValue).tag(backend)
+            }
           }
+          .pickerStyle(.segmented)
+        }
 
-          VStack(alignment: .leading, spacing: 4) {
-            Text("API Token")
-              .font(AppFont.caption)
-              .foregroundStyle(.secondary)
-            TextField("Shared secret token", text: $agentToken)
-              .autocapitalization(.none)
-              .disableAutocorrection(true)
-              .font(.system(.body, design: .monospaced))
+        if selectedBackend == .e2b {
+          Section(header: Text("E2B Agent"), footer: Text("Connect to the Matcha agent API (E2B + Claude Agent SDK) for task execution.")) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Base URL")
+                .font(AppFont.caption)
+                .foregroundStyle(.secondary)
+              TextField("https://your-deployment.vercel.app", text: $agentBaseURL)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+                .keyboardType(.URL)
+                .font(.system(.body, design: .monospaced))
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+              Text("API Token")
+                .font(AppFont.caption)
+                .foregroundStyle(.secondary)
+              TextField("Shared secret token", text: $agentToken)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+                .font(.system(.body, design: .monospaced))
+            }
+          }
+        } else {
+          Section(header: Text("OpenClaw Agent"), footer: Text("Connect to an OpenClaw instance running on your local network.")) {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Host")
+                .font(AppFont.caption)
+                .foregroundStyle(.secondary)
+              TextField("http://192.168.1.100", text: $openClawHost)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+                .keyboardType(.URL)
+                .font(.system(.body, design: .monospaced))
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Port")
+                .font(AppFont.caption)
+                .foregroundStyle(.secondary)
+              TextField("18789", text: $openClawPort)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+                .keyboardType(.numberPad)
+                .font(.system(.body, design: .monospaced))
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Gateway Token")
+                .font(AppFont.caption)
+                .foregroundStyle(.secondary)
+              TextField("Gateway auth token", text: $openClawGatewayToken)
+                .autocapitalization(.none)
+                .disableAutocorrection(true)
+                .font(.system(.body, design: .monospaced))
+            }
           }
         }
 
@@ -176,8 +225,12 @@ struct SettingsView: View {
   private func loadCurrentValues() {
     geminiAPIKey = settings.geminiAPIKey
     geminiSystemPrompt = settings.geminiSystemPrompt
+    selectedBackend = settings.agentBackend
     agentBaseURL = settings.agentBaseURL
     agentToken = settings.agentToken
+    openClawHost = settings.openClawHost
+    openClawPort = String(settings.openClawPort)
+    openClawGatewayToken = settings.openClawGatewayToken
     webrtcSignalingURL = settings.webrtcSignalingURL
     speakerOutputEnabled = settings.speakerOutputEnabled
     selectedFontTheme = FontTheme(rawValue: settings.fontTheme) ?? .tiempos
@@ -186,8 +239,12 @@ struct SettingsView: View {
   private func save() {
     settings.geminiAPIKey = geminiAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
     settings.geminiSystemPrompt = geminiSystemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+    settings.agentBackend = selectedBackend
     settings.agentBaseURL = agentBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
     settings.agentToken = agentToken.trimmingCharacters(in: .whitespacesAndNewlines)
+    settings.openClawHost = openClawHost.trimmingCharacters(in: .whitespacesAndNewlines)
+    settings.openClawPort = Int(openClawPort) ?? 18789
+    settings.openClawGatewayToken = openClawGatewayToken.trimmingCharacters(in: .whitespacesAndNewlines)
     settings.webrtcSignalingURL = webrtcSignalingURL.trimmingCharacters(in: .whitespacesAndNewlines)
     settings.speakerOutputEnabled = speakerOutputEnabled
     settings.fontTheme = selectedFontTheme.rawValue
