@@ -18,6 +18,7 @@ class ChatViewModel: ObservableObject {
   // MARK: - Dependencies
   let agentBridge = AgentBridge()
   let geminiSessionVM = GeminiSessionViewModel()
+  let callManager = CallManager.shared
 
   private var sendTask: Task<Void, Never>?
   private var streamingObservation: Task<Void, Never>?
@@ -133,6 +134,18 @@ class ChatViewModel: ObservableObject {
 
     geminiSessionVM.streamingMode = streamingMode
     geminiSessionVM.sharedAgentBridge = agentBridge
+
+    // Wire CallKit callbacks
+    callManager.onCallEnded = { [weak self] in
+      self?.stopVoiceMode()
+    }
+    callManager.onMuteToggled = { [weak self] (muted: Bool) in
+      // Propagate mute to the audio manager through the coordinator
+      self?.geminiSessionVM.coordinator?.voiceAgent.audioManager.isMuted = muted
+    }
+
+    // Start CallKit call and wait for audio session activation
+    await callManager.startCallAndWaitForAudio(displayName: "Matcha")
 
     // Bridge text conversation context into Gemini's system instruction
     let recentMessages = messages.suffix(10)
@@ -309,10 +322,14 @@ class ChatViewModel: ObservableObject {
     RemoteLogger.shared.log("session:voice_start")
     await geminiSessionVM.startSession()
 
-    if !geminiSessionVM.isGeminiActive {
+    if geminiSessionVM.isGeminiActive {
+      // Report call as connected (changes lock screen from "Calling..." to timer)
+      callManager.reportCallConnected()
+    } else {
       isVoiceModeActive = false
       voiceObservation?.cancel()
       voiceObservation = nil
+      callManager.endCall()
       errorMessage = geminiSessionVM.errorMessage ?? "Failed to start voice mode"
     }
   }
@@ -334,6 +351,7 @@ class ChatViewModel: ObservableObject {
 
     RemoteLogger.shared.log("session:voice_end")
     geminiSessionVM.stopSession()
+    callManager.endCall()
 
     // Bridge voice session messages into the agent's conversation history
     // Only inject messages added during this voice session (not prior text chat)

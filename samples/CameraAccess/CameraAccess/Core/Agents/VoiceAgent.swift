@@ -16,7 +16,7 @@ class VoiceAgent: ObservableObject {
   var onDisconnected: ((String?) -> Void)?
 
   private let provider: VoiceModelProvider
-  private let audioManager: AudioManager
+  let audioManager: AudioManager
   private var eventListenerTask: Task<Void, Never>?
   private var lastVideoFrameTime: Date = .distantPast
 

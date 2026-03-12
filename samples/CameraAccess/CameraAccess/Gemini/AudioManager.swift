@@ -7,9 +7,12 @@ class AudioManager {
 
   private let audioEngine = AVAudioEngine()
   private let playerNode = AVAudioPlayerNode()
-  private var isCapturing = false
+  private(set) var isCapturing = false
   private var wasCapturingBeforeInterruption = false
   private var useIPhoneMode = false
+
+  /// When true, mic input is suppressed (muted via CallKit lock screen)
+  var isMuted = false
 
   private let outputFormat: AVAudioFormat
 
@@ -55,7 +58,10 @@ class AudioManager {
     }
     try session.setPreferredSampleRate(GeminiConfig.inputAudioSampleRate)
     try session.setPreferredIOBufferDuration(0.064)
-    try session.setActive(true)
+    if !CallManager._isCallActiveAtomic {
+      // When CallKit manages the session, it calls setActive for us via didActivate
+      try session.setActive(true)
+    }
     if SettingsManager.shared.speakerOutputEnabled {
       try session.overrideOutputAudioPort(.speaker)
       NSLog("[Audio] Speaker output override: ON (iPhone speaker)")
@@ -109,6 +115,8 @@ class AudioManager {
     var tapCount = 0
     inputNode.installTap(onBus: 0, bufferSize: 4096, format: inputNativeFormat) { [weak self] buffer, _ in
       guard let self else { return }
+      // Skip sending audio when muted (CallKit lock screen mute)
+      guard !self.isMuted else { return }
 
       tapCount += 1
       let pcmData: Data
@@ -302,7 +310,9 @@ class AudioManager {
     NSLog("[Audio] Resuming audio after interruption")
     let audioSession = AVAudioSession.sharedInstance()
     do {
-      try audioSession.setActive(true)
+      if !CallManager._isCallActiveAtomic {
+        try audioSession.setActive(true)
+      }
       try audioEngine.start()
       NSLog("[Audio] Audio resumed successfully")
     } catch {

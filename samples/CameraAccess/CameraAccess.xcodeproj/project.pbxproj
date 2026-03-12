@@ -30,6 +30,15 @@
 		9DA4B89F2F61FBF8003E0C93 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 9DA4B89E2F61FBF8003E0C93 /* GoogleSignIn */; };
 		9DA4B8A12F61FBF8003E0C93 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 9DA4B8A02F61FBF8003E0C93 /* GoogleSignInSwift */; };
 		9DA4B8A32F61FF5A003E0C93 /* GoogleAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA4B8A22F61FF5A003E0C93 /* GoogleAuthManager.swift */; };
+		9DA4B8A52F620FFD003E0C93 /* NotionAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA4B8A42F620FFD003E0C93 /* NotionAuthManager.swift */; };
+		9DA4B8AE2F625D21003E0C93 /* TestTiemposText-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9DA4B8A92F625D21003E0C93 /* TestTiemposText-Medium.otf */; };
+		9DA4B8AF2F625D21003E0C93 /* TestTiemposText-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9DA4B8AA2F625D21003E0C93 /* TestTiemposText-Regular.otf */; };
+		9DA4B8B02F625D21003E0C93 /* TestTiemposFine-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9DA4B8A62F625D21003E0C93 /* TestTiemposFine-Regular.otf */; };
+		9DA4B8B12F625D21003E0C93 /* TestTiemposText-Semibold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9DA4B8AC2F625D21003E0C93 /* TestTiemposText-Semibold.otf */; };
+		9DA4B8B22F625D21003E0C93 /* TestTiemposText-RegularItalic.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9DA4B8AB2F625D21003E0C93 /* TestTiemposText-RegularItalic.otf */; };
+		9DA4B8B32F625D21003E0C93 /* TestTiemposText-Bold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9DA4B8A82F625D21003E0C93 /* TestTiemposText-Bold.otf */; };
+		9DA4B8B42F625D21003E0C93 /* TestTiemposFine-Semibold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 9DA4B8A72F625D21003E0C93 /* TestTiemposFine-Semibold.otf */; };
+		9DA4B8B62F625D4A003E0C93 /* AppFont.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA4B8B52F625D4A003E0C93 /* AppFont.swift */; };
 		9DBB18A52F5FFE240019775B /* ChatInputBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB189C2F5FFE240019775B /* ChatInputBar.swift */; };
 		9DBB18A62F5FFE240019775B /* MessageBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18A02F5FFE240019775B /* MessageBubbleView.swift */; };
 		9DBB18A72F5FFE240019775B /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18A32F5FFE240019775B /* ChatViewModel.swift */; };
@@ -44,6 +53,7 @@
 		9DBB18BC2F5FFF370019775B /* VoiceModelProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18B62F5FFF370019775B /* VoiceModelProvider.swift */; };
 		9DBB18BD2F5FFF370019775B /* ActionAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18AF2F5FFF370019775B /* ActionAgent.swift */; };
 		9DBB18BE2F5FFF370019775B /* AgentCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18B02F5FFF370019775B /* AgentCoordinator.swift */; };
+		A1C4114A2F6200000000000A /* CallManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C4114B2F6200000000000A /* CallManager.swift */; };
 		9DBB18D32F60A2100019775B /* AgentConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18CF2F60A2100019775B /* AgentConfig.swift */; };
 		9DBB18D42F60A2100019775B /* ToolCallModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18D02F60A2100019775B /* ToolCallModels.swift */; };
 		9DBB18D52F60A2100019775B /* ToolCallRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18D12F60A2100019775B /* ToolCallRouter.swift */; };
@@ -122,6 +132,15 @@
 		8FFD605F2E84A2F70035E446 /* MainAppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainAppView.swift; sourceTree = "<group>"; };
 		9DA4B8652F60DD53003E0C93 /* RemoteLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteLogger.swift; sourceTree = "<group>"; };
 		9DA4B8A22F61FF5A003E0C93 /* GoogleAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthManager.swift; sourceTree = "<group>"; };
+		9DA4B8A42F620FFD003E0C93 /* NotionAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionAuthManager.swift; sourceTree = "<group>"; };
+		9DA4B8A62F625D21003E0C93 /* TestTiemposFine-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TestTiemposFine-Regular.otf"; sourceTree = "<group>"; };
+		9DA4B8A72F625D21003E0C93 /* TestTiemposFine-Semibold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TestTiemposFine-Semibold.otf"; sourceTree = "<group>"; };
+		9DA4B8A82F625D21003E0C93 /* TestTiemposText-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TestTiemposText-Bold.otf"; sourceTree = "<group>"; };
+		9DA4B8A92F625D21003E0C93 /* TestTiemposText-Medium.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TestTiemposText-Medium.otf"; sourceTree = "<group>"; };
+		9DA4B8AA2F625D21003E0C93 /* TestTiemposText-Regular.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TestTiemposText-Regular.otf"; sourceTree = "<group>"; };
+		9DA4B8AB2F625D21003E0C93 /* TestTiemposText-RegularItalic.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TestTiemposText-RegularItalic.otf"; sourceTree = "<group>"; };
+		9DA4B8AC2F625D21003E0C93 /* TestTiemposText-Semibold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "TestTiemposText-Semibold.otf"; sourceTree = "<group>"; };
+		9DA4B8B52F625D4A003E0C93 /* AppFont.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFont.swift; sourceTree = "<group>"; };
 		9DBB189A2F5FFE240019775B /* ChatMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessage.swift; sourceTree = "<group>"; };
 		9DBB189C2F5FFE240019775B /* ChatInputBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatInputBar.swift; sourceTree = "<group>"; };
 		9DBB189D2F5FFE240019775B /* ChatMessageList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatMessageList.swift; sourceTree = "<group>"; };
@@ -133,6 +152,7 @@
 		9DBB18AD2F5FFE5D0019775B /* GeminiChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiChatService.swift; sourceTree = "<group>"; };
 		9DBB18AF2F5FFF370019775B /* ActionAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionAgent.swift; sourceTree = "<group>"; };
 		9DBB18B02F5FFF370019775B /* AgentCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentCoordinator.swift; sourceTree = "<group>"; };
+		A1C4114B2F6200000000000A /* CallManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallManager.swift; sourceTree = "<group>"; };
 		9DBB18B12F5FFF370019775B /* VoiceAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAgent.swift; sourceTree = "<group>"; };
 		9DBB18B32F5FFF370019775B /* GeminiLiveProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiLiveProvider.swift; sourceTree = "<group>"; };
 		9DBB18B52F5FFF370019775B /* AgentProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentProtocol.swift; sourceTree = "<group>"; };
@@ -249,6 +269,7 @@
 		8FD96B7D2E6F0A9800F56AB1 /* CameraAccess */ = {
 			isa = PBXGroup;
 			children = (
+				9DA4B8AD2F625D21003E0C93 /* Fonts */,
 				9DBB18D22F60A2100019775B /* Agent */,
 				9DBB18B82F5FFF370019775B /* Core */,
 				9DBB18A42F5FFE240019775B /* Chat */,
@@ -288,6 +309,20 @@
 				8FFD602A2E8433E20035E446 /* MockDeviceViewModel.swift */,
 			);
 			path = MockDeviceKit;
+			sourceTree = "<group>";
+		};
+		9DA4B8AD2F625D21003E0C93 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				9DA4B8A62F625D21003E0C93 /* TestTiemposFine-Regular.otf */,
+				9DA4B8A72F625D21003E0C93 /* TestTiemposFine-Semibold.otf */,
+				9DA4B8A82F625D21003E0C93 /* TestTiemposText-Bold.otf */,
+				9DA4B8A92F625D21003E0C93 /* TestTiemposText-Medium.otf */,
+				9DA4B8AA2F625D21003E0C93 /* TestTiemposText-Regular.otf */,
+				9DA4B8AB2F625D21003E0C93 /* TestTiemposText-RegularItalic.otf */,
+				9DA4B8AC2F625D21003E0C93 /* TestTiemposText-Semibold.otf */,
+			);
+			path = Fonts;
 			sourceTree = "<group>";
 		};
 		9DBB189B2F5FFE240019775B /* Models */ = {
@@ -355,6 +390,7 @@
 				9DBB18B22F5FFF370019775B /* Agents */,
 				9DBB18B42F5FFF370019775B /* Models */,
 				9DBB18B72F5FFF370019775B /* Protocols */,
+				A1C4114B2F6200000000000A /* CallManager.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -362,6 +398,7 @@
 		9DBB18D22F60A2100019775B /* Agent */ = {
 			isa = PBXGroup;
 			children = (
+				9DA4B8A42F620FFD003E0C93 /* NotionAuthManager.swift */,
 				9DA4B8A22F61FF5A003E0C93 /* GoogleAuthManager.swift */,
 				9DA4B8652F60DD53003E0C93 /* RemoteLogger.swift */,
 				9DBB18CE2F60A2100019775B /* AgentBridge.swift */,
@@ -390,6 +427,7 @@
 		9DD894B12F4047630090B9B9 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				9DA4B8B52F625D4A003E0C93 /* AppFont.swift */,
 				9DD894AF2F4047630090B9B9 /* SettingsManager.swift */,
 				9DD894B02F4047630090B9B9 /* SettingsView.swift */,
 			);
@@ -512,6 +550,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				8FD96B8D2E6F0A9800F56AB1 /* Assets.xcassets in Resources */,
+				9DA4B8AE2F625D21003E0C93 /* TestTiemposText-Medium.otf in Resources */,
+				9DA4B8AF2F625D21003E0C93 /* TestTiemposText-Regular.otf in Resources */,
+				9DA4B8B02F625D21003E0C93 /* TestTiemposFine-Regular.otf in Resources */,
+				9DA4B8B12F625D21003E0C93 /* TestTiemposText-Semibold.otf in Resources */,
+				9DA4B8B22F625D21003E0C93 /* TestTiemposText-RegularItalic.otf in Resources */,
+				9DA4B8B32F625D21003E0C93 /* TestTiemposText-Bold.otf in Resources */,
+				9DA4B8B42F625D21003E0C93 /* TestTiemposFine-Semibold.otf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -531,6 +576,7 @@
 			files = (
 				9DBB18D32F60A2100019775B /* AgentConfig.swift in Sources */,
 				9DBB18D42F60A2100019775B /* ToolCallModels.swift in Sources */,
+				9DA4B8B62F625D4A003E0C93 /* AppFont.swift in Sources */,
 				9DBB18D52F60A2100019775B /* ToolCallRouter.swift in Sources */,
 				9DBB18D62F60A2100019775B /* AgentBridge.swift in Sources */,
 				8FD96B7F2E6F0A9800F56AB1 /* CameraAccessApp.swift in Sources */,
@@ -551,6 +597,7 @@
 				9DD6CB0E2F3C64F400ED7098 /* WebRTCOverlayView.swift in Sources */,
 				8FFD60352E8434070035E446 /* StatusText.swift in Sources */,
 				9DBB18AE2F5FFE5D0019775B /* GeminiChatService.swift in Sources */,
+				9DA4B8A52F620FFD003E0C93 /* NotionAuthManager.swift in Sources */,
 				8FFD602C2E8433E20035E446 /* MockDeviceKitViewModel.swift in Sources */,
 				8FFD602D2E8433E20035E446 /* MockDeviceViewModel.swift in Sources */,
 				E6DA451D2E79A63100E3F688 /* MockDeviceCardView.swift in Sources */,
@@ -575,6 +622,7 @@
 				9DBB18BC2F5FFF370019775B /* VoiceModelProvider.swift in Sources */,
 				9DBB18BD2F5FFF370019775B /* ActionAgent.swift in Sources */,
 				9DBB18BE2F5FFF370019775B /* AgentCoordinator.swift in Sources */,
+				A1C4114A2F6200000000000A /* CallManager.swift in Sources */,
 				9DD895972F405E0E0090B9B9 /* PiPVideoView.swift in Sources */,
 				8F8F00782E8ACB4600A4BDAF /* WearablesViewModel.swift in Sources */,
 				E6A188482EB918740097D0E1 /* StreamView.swift in Sources */,
