@@ -94,6 +94,20 @@ struct LiquidGlassModifier: ViewModifier {
   }
 }
 
+/// Applies native Liquid Glass capsule directly on a view (no custom shadow/stroke)
+struct NativeGlassCapsule: ViewModifier {
+  func body(content: Content) -> some View {
+    if #available(iOS 26, *) {
+      content.glassEffect(.regular, in: .capsule)
+    } else {
+      content
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(.quaternary, lineWidth: 0.5))
+        .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+    }
+  }
+}
+
 /// Wraps children in GlassEffectContainer on iOS 26+
 struct GlassButtonGroup<Content: View>: View {
   @ViewBuilder let content: Content

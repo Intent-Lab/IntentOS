@@ -55,8 +55,7 @@ struct ChatInputBar: View {
     .padding(.leading, 8)
     .padding(.trailing, canSend ? 8 : 12)
     .padding(.vertical, 8)
-    .modifier(LiquidGlassModifier(shape: .capsule))
-    .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+    .modifier(NativeGlassCapsule())
     .padding(.horizontal, 16)
     .padding(.bottom, 8)
     .animation(.easeInOut(duration: 0.2), value: canSend)
@@ -99,8 +98,7 @@ struct ChatInputBar: View {
     }
     .padding(.horizontal, 16)
     .padding(.vertical, 10)
-    .modifier(LiquidGlassModifier(shape: .capsule))
-    .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+    .modifier(NativeGlassCapsule())
     .padding(.horizontal, 16)
     .padding(.bottom, 8)
   }
