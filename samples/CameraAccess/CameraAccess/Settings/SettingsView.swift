@@ -19,6 +19,14 @@ struct SettingsView: View {
   @State private var speakerOutputEnabled: Bool = false
   @State private var selectedFontTheme: FontTheme = .tiempos
   @State private var showResetConfirmation = false
+  @State private var openClawStatus: OpenClawConnectionStatus = .idle
+
+  enum OpenClawConnectionStatus: Equatable {
+    case idle
+    case checking
+    case connected
+    case unreachable(String)
+  }
 
   var body: some View {
     NavigationView {
@@ -115,6 +123,45 @@ struct SettingsView: View {
                 .autocapitalization(.none)
                 .disableAutocorrection(true)
                 .font(.system(.body, design: .monospaced))
+            }
+
+            HStack {
+              Button(action: { testOpenClawConnection() }) {
+                HStack(spacing: 6) {
+                  if openClawStatus == .checking {
+                    ProgressView()
+                      .controlSize(.small)
+                  }
+                  Text(openClawStatus == .checking ? "Testing..." : "Test Connection")
+                }
+              }
+              .disabled(openClawStatus == .checking || openClawHost.trimmingCharacters(in: .whitespaces).isEmpty)
+
+              Spacer()
+
+              switch openClawStatus {
+              case .idle, .checking:
+                EmptyView()
+              case .connected:
+                HStack(spacing: 4) {
+                  Circle()
+                    .fill(.green)
+                    .frame(width: 8, height: 8)
+                  Text("Connected")
+                    .font(AppFont.caption)
+                    .foregroundStyle(.green)
+                }
+              case .unreachable(let reason):
+                HStack(spacing: 4) {
+                  Circle()
+                    .fill(.red)
+                    .frame(width: 8, height: 8)
+                  Text(reason)
+                    .font(AppFont.caption)
+                    .foregroundStyle(.red)
+                    .lineLimit(1)
+                }
+              }
             }
           }
         }
@@ -246,6 +293,43 @@ struct SettingsView: View {
     webrtcSignalingURL = settings.webrtcSignalingURL
     speakerOutputEnabled = settings.speakerOutputEnabled
     selectedFontTheme = FontTheme(rawValue: settings.fontTheme) ?? .tiempos
+  }
+
+  private func testOpenClawConnection() {
+    let host = openClawHost.trimmingCharacters(in: .whitespacesAndNewlines)
+    let port = openClawPort.trimmingCharacters(in: .whitespacesAndNewlines)
+    let token = openClawGatewayToken.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    guard !host.isEmpty, !token.isEmpty else {
+      openClawStatus = .unreachable("Missing host or token")
+      return
+    }
+
+    let base = "\(host):\(port.isEmpty ? "18789" : port)"
+    guard let url = URL(string: "\(base)/v1/chat/completions") else {
+      openClawStatus = .unreachable("Invalid URL")
+      return
+    }
+
+    openClawStatus = .checking
+
+    var request = URLRequest(url: url)
+    request.httpMethod = "GET"
+    request.timeoutInterval = 5
+    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+    Task {
+      do {
+        let (_, response) = try await URLSession.shared.data(for: request)
+        if let http = response as? HTTPURLResponse, (200...499).contains(http.statusCode) {
+          openClawStatus = .connected
+        } else {
+          openClawStatus = .unreachable("Unexpected response")
+        }
+      } catch {
+        openClawStatus = .unreachable("Unreachable")
+      }
+    }
   }
 
   private func save() {
