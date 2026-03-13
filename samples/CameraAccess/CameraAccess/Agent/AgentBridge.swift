@@ -46,12 +46,15 @@ class AgentBridge: ObservableObject {
   private var sandboxUrl: String?
   private var sandboxAuthToken: String?
 
-  /// Which backend this bridge is using (read once at init, stable for lifetime)
-  let backend: AgentBackend
+  /// Track last-used backend to detect switches
+  private var lastUsedBackend: AgentBackend?
+
+  /// Which backend this bridge is using (reads dynamically from settings)
+  var backend: AgentBackend {
+    SettingsManager.shared.agentBackend
+  }
 
   init() {
-    self.backend = SettingsManager.shared.agentBackend
-
     let config = URLSessionConfiguration.default
     config.timeoutIntervalForRequest = 120
     self.session = URLSession(configuration: config)
@@ -452,13 +455,23 @@ class AgentBridge: ObservableObject {
     task: String,
     toolName: String = "execute"
   ) async -> ToolResult {
+    // Detect backend switch and reset connection state
+    let currentBackend = backend
+    if lastUsedBackend != nil && lastUsedBackend != currentBackend {
+      NSLog("[Agent] Backend switched from %@ to %@, resetting connection", lastUsedBackend!.rawValue, currentBackend.rawValue)
+      connectionState = .notConfigured
+      sandboxUrl = nil
+      sandboxAuthToken = nil
+    }
+    lastUsedBackend = currentBackend
+
     lastToolCallStatus = .executing(toolName)
     streamingText = ""
     agentSteps = [AgentStep(type: .thinking, label: "Thinking...")]
 
     do {
       let content: String
-      switch backend {
+      switch currentBackend {
       case .e2b:
         content = try await sendDirectOrFallback(prompt: task)
       case .openClaw:
