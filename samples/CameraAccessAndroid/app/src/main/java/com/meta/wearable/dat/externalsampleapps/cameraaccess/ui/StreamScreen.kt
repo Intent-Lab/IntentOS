@@ -64,9 +64,10 @@ fun StreamScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
 
-    // Wire Gemini VM to Stream VM for frame forwarding
+    // Wire Gemini VM to Stream VM for frame forwarding and provide app context for photo capture
     LaunchedEffect(geminiViewModel) {
         streamViewModel.geminiViewModel = geminiViewModel
+        geminiViewModel.appContext = context.applicationContext
     }
 
     // Wire WebRTC VM to Stream VM for frame forwarding

@@ -105,7 +105,7 @@ enum ToolDeclarations {
 
   static let execute: [String: Any] = [
     "name": "execute",
-    "description": "Your only way to take action. You have no memory, storage, or ability to do anything on your own -- use this tool for everything: sending messages, searching the web, adding to lists, setting reminders, creating notes, research, drafts, scheduling, smart home control, app interactions, or any request that goes beyond answering a question. When in doubt, use this tool.",
+    "description": "Your main tool for taking real actions. Use this for everything: sending messages, searching the web, managing lists, reminders, notes, email, calendar, research, drafts, scheduling, smart home control, app interactions, or any request that goes beyond answering a question. When in doubt, use this tool.",
     "parameters": [
       "type": "object",
       "properties": [

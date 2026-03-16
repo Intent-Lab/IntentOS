@@ -90,6 +90,26 @@ sealed class ToolCallStatus {
         get() = this is Executing
 }
 
+// Agent Step (for UI status display during E2B streaming)
+
+data class AgentStep(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val type: StepType,
+    val label: String,
+    val isDone: Boolean = false,
+    val success: Boolean = true
+) {
+    sealed class StepType {
+        data object Thinking : StepType()
+        data class Tool(val name: String) : StepType()
+    }
+
+    val displayText: String
+        get() = if (!isDone) label
+                else if (success) label
+                else "Failed: $label"
+}
+
 // OpenClaw Connection State
 
 sealed class OpenClawConnectionState {
@@ -103,7 +123,24 @@ sealed class OpenClawConnectionState {
 
 object ToolDeclarations {
     fun allDeclarationsJSON(): JSONArray {
-        return JSONArray().put(executeJSON())
+        return JSONArray().put(executeJSON()).put(capturePhotoJSON())
+    }
+
+    private fun capturePhotoJSON(): JSONObject {
+        return JSONObject().apply {
+            put("name", "capture_photo")
+            put("description", "Capture and save the current camera frame as a photo. Use when the user asks to take a photo, capture what you see, save a picture, or snap a photo.")
+            put("parameters", JSONObject().apply {
+                put("type", "object")
+                put("properties", JSONObject().apply {
+                    put("description", JSONObject().apply {
+                        put("type", "string")
+                        put("description", "Brief description of what is in the photo")
+                    })
+                })
+                put("required", JSONArray())
+            })
+        }
     }
 
     private fun executeJSON(): JSONObject {

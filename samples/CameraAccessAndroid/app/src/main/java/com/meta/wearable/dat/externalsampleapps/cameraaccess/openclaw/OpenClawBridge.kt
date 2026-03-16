@@ -24,6 +24,100 @@ import org.json.JSONObject
 class OpenClawBridge {
     companion object {
         private const val TAG = "AgentBridge"
+        private const val SESSION_MAX_AGE_MS = 86_400_000L // 24 hours
+
+        fun friendlyToolLabel(tool: String, input: Map<String, Any?>?): String {
+            return when (tool) {
+                "Bash" -> {
+                    val cmd = input?.get("command")?.toString()
+                    if (cmd != null) {
+                        val short = cmd.lines().firstOrNull() ?: cmd
+                        val trimmed = if (short.length > 60) short.take(60) + "..." else short
+                        "Running: $trimmed"
+                    } else "Running command..."
+                }
+                "Read" -> {
+                    val path = input?.get("file_path")?.toString()
+                    if (path != null) "Reading ${path.substringAfterLast('/')}"
+                    else "Reading file..."
+                }
+                "Write" -> {
+                    val path = input?.get("file_path")?.toString()
+                    if (path != null) "Writing ${path.substringAfterLast('/')}"
+                    else "Writing file..."
+                }
+                "Edit" -> {
+                    val path = input?.get("file_path")?.toString()
+                    if (path != null) "Editing ${path.substringAfterLast('/')}"
+                    else "Editing file..."
+                }
+                "Glob" -> {
+                    val pattern = input?.get("pattern")?.toString()
+                    if (pattern != null) "Searching: $pattern"
+                    else "Searching files..."
+                }
+                "Grep" -> {
+                    val pattern = input?.get("pattern")?.toString()
+                    if (pattern != null) {
+                        val short = if (pattern.length > 40) pattern.take(40) + "..." else pattern
+                        "Searching: $short"
+                    } else "Searching code..."
+                }
+                "WebSearch" -> {
+                    val query = input?.get("query")?.toString()
+                    if (query != null) "Searching: $query"
+                    else "Web search..."
+                }
+                "WebFetch" -> "Fetching web page..."
+                "google_calendar_events" -> "Checking calendar..."
+                "google_gmail_search" -> {
+                    val query = input?.get("query")?.toString()
+                    if (query != null) {
+                        val short = if (query.length > 40) query.take(40) + "..." else query
+                        "Searching email: $short"
+                    } else "Searching email..."
+                }
+                "google_gmail_read" -> "Reading email..."
+                "google_drive_search" -> {
+                    val query = input?.get("query")?.toString()
+                    if (query != null) {
+                        val short = if (query.length > 40) query.take(40) + "..." else query
+                        "Searching Drive: $short"
+                    } else "Searching Drive..."
+                }
+                "google_drive_read" -> {
+                    val name = input?.get("file_name")?.toString()
+                    if (name != null) "Reading $name" else "Reading Drive file..."
+                }
+                "google_drive_create" -> {
+                    val name = input?.get("name")?.toString()
+                    if (name != null) "Creating $name" else "Creating Drive file..."
+                }
+                "google_drive_update" -> {
+                    val name = input?.get("file_name")?.toString()
+                    if (name != null) "Updating $name" else "Updating Drive file..."
+                }
+                "notion_search" -> {
+                    val query = input?.get("query")?.toString()
+                    if (query != null) {
+                        val short = if (query.length > 40) query.take(40) + "..." else query
+                        "Searching Notion: $short"
+                    } else "Searching Notion..."
+                }
+                "notion_read_page" -> "Reading Notion page..."
+                "notion_create_page" -> {
+                    val title = input?.get("title")?.toString()
+                    if (title != null) "Creating $title" else "Creating Notion page..."
+                }
+                "notion_update_page" -> "Updating Notion page..."
+                "memory_read" -> "Recalling memories..."
+                "memory_save" -> "Saving to memory..."
+                "memory_delete" -> "Removing memory..."
+                "memory_search" -> "Searching memories..."
+                "memory_list" -> "Checking memory..."
+                else -> "Running $tool..."
+            }
+        }
     }
 
     private val _lastToolCallStatus = MutableStateFlow<ToolCallStatus>(ToolCallStatus.Idle)
@@ -31,6 +125,12 @@ class OpenClawBridge {
 
     private val _connectionState = MutableStateFlow<OpenClawConnectionState>(OpenClawConnectionState.NotConfigured)
     val connectionState: StateFlow<OpenClawConnectionState> = _connectionState.asStateFlow()
+
+    private val _streamingText = MutableStateFlow("")
+    val streamingText: StateFlow<String> = _streamingText.asStateFlow()
+
+    private val _agentSteps = MutableStateFlow<List<AgentStep>>(emptyList())
+    val agentSteps: StateFlow<List<AgentStep>> = _agentSteps.asStateFlow()
 
     fun setToolCallStatus(status: ToolCallStatus) {
         _lastToolCallStatus.value = status
@@ -46,8 +146,12 @@ class OpenClawBridge {
         .connectTimeout(5, TimeUnit.SECONDS)
         .build()
 
-    private var sessionKey: String = newSessionKey()
+    private var sessionKey: String
     private val conversationHistory = mutableListOf<JSONObject>()
+
+    // Direct E2B sandbox connection
+    private var sandboxUrl: String? = null
+    private var sandboxAuthToken: String? = null
 
     /** Track last-used backend to detect switches */
     private var lastUsedBackend: AgentBackend? = null
@@ -59,6 +163,21 @@ class OpenClawBridge {
     /** Max conversation history turns varies by backend */
     private val maxHistoryTurns: Int
         get() = if (backend == AgentBackend.OPENCLAW) 10 else 3
+
+    init {
+        // Reuse persisted session key if < 24 hours old
+        val existingKey = SettingsManager.agentSessionKey
+        val age = System.currentTimeMillis() - SettingsManager.agentSessionCreatedAt
+        if (existingKey != null && age < SESSION_MAX_AGE_MS) {
+            sessionKey = existingKey
+            Log.d(TAG, "[${backend.label}] Resumed session: $existingKey")
+        } else {
+            sessionKey = newSessionKey()
+            SettingsManager.agentSessionKey = sessionKey
+            SettingsManager.agentSessionCreatedAt = System.currentTimeMillis()
+            Log.d(TAG, "[${backend.label}] New session: $sessionKey")
+        }
+    }
 
     // -- Connection Check --
 
@@ -136,7 +255,56 @@ class OpenClawBridge {
     fun resetSession() {
         sessionKey = newSessionKey()
         conversationHistory.clear()
-        Log.d(TAG, "New session: $sessionKey")
+        sandboxUrl = null
+        sandboxAuthToken = null
+        SettingsManager.agentSessionKey = sessionKey
+        SettingsManager.agentSessionCreatedAt = System.currentTimeMillis()
+        Log.d(TAG, "Reset session: $sessionKey")
+    }
+
+    // -- Context Injection --
+
+    fun injectContext(messages: List<JSONObject>) {
+        conversationHistory.addAll(0, messages)
+        if (conversationHistory.size > maxHistoryTurns * 2) {
+            val trimmed = conversationHistory.takeLast(maxHistoryTurns * 2)
+            conversationHistory.clear()
+            conversationHistory.addAll(trimmed)
+        }
+        Log.d(TAG, "[${backend.label}] Injected ${messages.size} context messages (total: ${conversationHistory.size})")
+
+        // Also inject into E2B sandbox if active
+        if (backend == AgentBackend.E2B && sandboxUrl != null && sandboxAuthToken != null) {
+            try {
+                injectContextToSandbox(messages)
+            } catch (e: Exception) {
+                Log.d(TAG, "Failed to inject context to sandbox: ${e.message}")
+            }
+        }
+    }
+
+    private fun injectContextToSandbox(messages: List<JSONObject>) {
+        val sbUrl = sandboxUrl ?: return
+        val authToken = sandboxAuthToken ?: return
+        val url = "$sbUrl/context"
+
+        val messagesArray = JSONArray()
+        for (msg in messages) messagesArray.put(msg)
+
+        val body = JSONObject().apply {
+            put("messages", messagesArray)
+            put("token", authToken)
+        }
+
+        val request = Request.Builder()
+            .url(url)
+            .post(body.toString().toRequestBody("application/json".toMediaType()))
+            .addHeader("Content-Type", "application/json")
+            .build()
+
+        val response = pingClient.newCall(request).execute()
+        Log.d(TAG, "Context injected to sandbox: HTTP ${response.code}")
+        response.close()
     }
 
     // -- Task Delegation --
@@ -150,17 +318,22 @@ class OpenClawBridge {
         if (lastUsedBackend != null && lastUsedBackend != currentBackend) {
             Log.d(TAG, "Backend switched from ${lastUsedBackend?.label} to ${currentBackend.label}, resetting")
             _connectionState.value = OpenClawConnectionState.NotConfigured
+            sandboxUrl = null
+            sandboxAuthToken = null
         }
         lastUsedBackend = currentBackend
 
         _lastToolCallStatus.value = ToolCallStatus.Executing(toolName)
+        _streamingText.value = ""
+        _agentSteps.value = listOf(AgentStep(type = AgentStep.StepType.Thinking, label = "Thinking..."))
 
         try {
             val content = when (currentBackend) {
-                AgentBackend.E2B -> sendViaE2B(task)
+                AgentBackend.E2B -> sendDirectOrFallback(task)
                 AgentBackend.OPENCLAW -> sendViaOpenClaw(task)
             }
             Log.d(TAG, "[${currentBackend.label}] Result: ${content.take(200)}")
+            markThinkingDone()
             _lastToolCallStatus.value = ToolCallStatus.Completed(toolName)
             return@withContext ToolResult.Success(content)
         } catch (e: Exception) {
@@ -170,21 +343,183 @@ class OpenClawBridge {
         }
     }
 
-    // -- E2B Backend --
+    // -- E2B: Direct Sandbox + Vercel Fallback --
 
-    private fun sendViaE2B(task: String): String {
+    private fun sendDirectOrFallback(prompt: String): String {
+        // Initialize sandbox if needed
+        if (sandboxUrl == null) {
+            try {
+                initSandbox()
+            } catch (e: Exception) {
+                Log.d(TAG, "Init failed, falling back to Vercel: ${e.message}")
+                return sendViaVercel(prompt)
+            }
+        }
+
+        // Try direct E2B streaming
+        try {
+            return sendToSandboxStreaming(prompt)
+        } catch (e: Exception) {
+            Log.d(TAG, "Direct E2B failed: ${e.message}, re-initializing...")
+            // Sandbox may have expired -- re-init and retry once
+            try {
+                sandboxUrl = null
+                sandboxAuthToken = null
+                initSandbox()
+                return sendToSandboxStreaming(prompt)
+            } catch (e2: Exception) {
+                Log.d(TAG, "Retry failed, falling back to Vercel: ${e2.message}")
+                return sendViaVercel(prompt)
+            }
+        }
+    }
+
+    private fun initSandbox() {
+        val baseURL = GeminiConfig.agentBaseURL
+        val token = GeminiConfig.agentToken
+        val url = "$baseURL/api/agent/init"
+
+        val request = Request.Builder()
+            .url(url)
+            .post("{}".toRequestBody("application/json".toMediaType()))
+            .addHeader("Content-Type", "application/json")
+            .addHeader("x-api-token", token)
+            .addHeader("x-agent-session-key", sessionKey)
+            .addHeader("x-agent-user-id", SettingsManager.userId)
+            .build()
+
+        Log.d(TAG, "Initializing sandbox for session: $sessionKey")
+
+        val response = client.newCall(request).execute()
+        val responseBody = response.body?.string() ?: ""
+        val statusCode = response.code
+        response.close()
+
+        if (statusCode !in 200..299) {
+            throw RuntimeException("Sandbox init HTTP $statusCode")
+        }
+
+        val json = JSONObject(responseBody)
+        sandboxUrl = json.getString("sandboxUrl")
+        sandboxAuthToken = json.getString("authToken")
+        Log.d(TAG, "Sandbox initialized: $sandboxUrl")
+    }
+
+    private fun sendToSandboxStreaming(prompt: String): String {
+        val sbUrl = sandboxUrl ?: throw RuntimeException("Sandbox not initialized")
+        val authToken = sandboxAuthToken ?: throw RuntimeException("Sandbox not initialized")
+        val url = "$sbUrl/stream"
+
+        val body = JSONObject().apply {
+            put("prompt", prompt)
+            put("token", authToken)
+            put("userId", SettingsManager.userId)
+            // TODO: Add googleAccessToken and notionAccessToken when Google/Notion OAuth
+            // is implemented on Android. See iOS GoogleAuthManager.swift and NotionAuthManager.swift.
+        }
+
+        val request = Request.Builder()
+            .url(url)
+            .post(body.toString().toRequestBody("application/json".toMediaType()))
+            .addHeader("Content-Type", "application/json")
+            .build()
+
+        _streamingText.value = ""
+
+        val response = client.newCall(request).execute()
+        if (response.code !in 200..299) {
+            val code = response.code
+            response.close()
+            throw RuntimeException("Sandbox stream HTTP $code")
+        }
+
+        val source = response.body?.source() ?: throw RuntimeException("Empty response body")
+        var finalResult: String? = null
+        var currentEvent = ""
+
+        try {
+            while (!source.exhausted()) {
+                val line = source.readUtf8Line() ?: break
+
+                if (line.startsWith("event: ")) {
+                    currentEvent = line.removePrefix("event: ")
+                } else if (line.startsWith("data: ")) {
+                    val dataStr = line.removePrefix("data: ")
+                    when (currentEvent) {
+                        "token" -> {
+                            val json = JSONObject(dataStr)
+                            val text = json.optString("text", "")
+                            if (text.isNotEmpty()) {
+                                if (_streamingText.value.isEmpty()) {
+                                    markThinkingDone()
+                                }
+                                _streamingText.value += text
+                            }
+                        }
+                        "tool_start" -> {
+                            val json = JSONObject(dataStr)
+                            val tool = json.optString("tool", "")
+                            val inputObj = json.optJSONObject("input")
+                            val inputMap = if (inputObj != null) {
+                                val map = mutableMapOf<String, Any?>()
+                                for (key in inputObj.keys()) map[key] = inputObj.opt(key)
+                                map
+                            } else null
+                            val label = friendlyToolLabel(tool, inputMap)
+                            val steps = _agentSteps.value.toMutableList()
+                            steps.add(AgentStep(type = AgentStep.StepType.Tool(tool), label = label))
+                            _agentSteps.value = steps
+                            Log.d(TAG, "Tool: $tool")
+                        }
+                        "tool_done" -> {
+                            val json = JSONObject(dataStr)
+                            val tool = json.optString("tool", "")
+                            val success = json.optBoolean("success", true)
+                            val steps = _agentSteps.value.toMutableList()
+                            val idx = steps.indexOfLast {
+                                it.type is AgentStep.StepType.Tool &&
+                                (it.type as AgentStep.StepType.Tool).name == tool && !it.isDone
+                            }
+                            if (idx >= 0) {
+                                steps[idx] = steps[idx].copy(isDone = true, success = success)
+                                _agentSteps.value = steps
+                            }
+                        }
+                        "done" -> {
+                            val json = JSONObject(dataStr)
+                            finalResult = json.optString("result", "")
+                            Log.d(TAG, "Done. cost: ${json.opt("cost_usd")}, duration: ${json.opt("duration_ms")}ms")
+                        }
+                        "error" -> {
+                            val json = JSONObject(dataStr)
+                            val error = json.optString("error", "Unknown error")
+                            throw RuntimeException("Server error: $error")
+                        }
+                    }
+                    currentEvent = ""
+                }
+            }
+        } finally {
+            response.close()
+        }
+
+        return finalResult ?: _streamingText.value
+    }
+
+    // -- E2B: Vercel Fallback --
+
+    private fun sendViaVercel(prompt: String): String {
         val baseURL = GeminiConfig.agentBaseURL
         val token = GeminiConfig.agentToken
         val url = "$baseURL/api/agent/chat"
 
-        // Append user message
         conversationHistory.add(JSONObject().apply {
             put("role", "user")
-            put("content", task)
+            put("content", prompt)
         })
         trimHistory()
 
-        Log.d(TAG, "[E2B] Sending ${conversationHistory.size} messages in conversation")
+        Log.d(TAG, "[E2B:Vercel] Sending ${conversationHistory.size} messages in conversation")
 
         val messagesArray = JSONArray()
         for (msg in conversationHistory) {
@@ -203,6 +538,7 @@ class OpenClawBridge {
             .addHeader("Content-Type", "application/json")
             .addHeader("x-api-token", token)
             .addHeader("x-agent-session-key", sessionKey)
+            .addHeader("x-agent-user-id", SettingsManager.userId)
             .build()
 
         val response = client.newCall(request).execute()
@@ -211,7 +547,7 @@ class OpenClawBridge {
         response.close()
 
         if (statusCode !in 200..299) {
-            Log.d(TAG, "[E2B] Chat failed: HTTP $statusCode - ${responseBody.take(200)}")
+            Log.d(TAG, "[E2B:Vercel] Chat failed: HTTP $statusCode - ${responseBody.take(200)}")
             throw RuntimeException("HTTP $statusCode")
         }
 
@@ -226,7 +562,7 @@ class OpenClawBridge {
             put("role", "assistant")
             put("content", result)
         })
-        Log.d(TAG, "[E2B] Agent result: ${result.take(200)}")
+        Log.d(TAG, "[E2B:Vercel] Agent result: ${result.take(200)}")
         return result
     }
 
@@ -238,7 +574,6 @@ class OpenClawBridge {
         val gatewayToken = SettingsManager.openClawGatewayToken
         val url = "$host:$port/v1/chat/completions"
 
-        // Append user message
         conversationHistory.add(JSONObject().apply {
             put("role", "user")
             put("content", task)
@@ -298,6 +633,15 @@ class OpenClawBridge {
             val trimmed = conversationHistory.takeLast(maxHistoryTurns * 2)
             conversationHistory.clear()
             conversationHistory.addAll(trimmed)
+        }
+    }
+
+    private fun markThinkingDone() {
+        val steps = _agentSteps.value.toMutableList()
+        val idx = steps.indexOfFirst { it.type is AgentStep.StepType.Thinking && !it.isDone }
+        if (idx >= 0) {
+            steps[idx] = steps[idx].copy(isDone = true)
+            _agentSteps.value = steps
         }
     }
 

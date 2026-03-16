@@ -91,8 +91,42 @@ object SettingsManager {
         get() = prefs.getString("webrtcSignalingURL", null) ?: Secrets.webrtcSignalingURL
         set(value) = prefs.edit().putString("webrtcSignalingURL", value).apply()
 
+    // -- User Identity (permanent, survives reset) --
+
+    val userId: String
+        get() {
+            val existing = prefs.getString("userId", null)
+            if (existing != null) return existing
+            val id = java.util.UUID.randomUUID().toString()
+            prefs.edit().putString("userId", id).apply()
+            return id
+        }
+
+    // -- Session Persistence --
+
+    var agentSessionKey: String?
+        get() = prefs.getString("agentSessionKey", null)
+        set(value) = prefs.edit().putString("agentSessionKey", value).apply()
+
+    var agentSessionCreatedAt: Long
+        get() = prefs.getLong("agentSessionCreatedAt", 0L)
+        set(value) = prefs.edit().putLong("agentSessionCreatedAt", value).apply()
+
+    // -- Reset (preserves userId) --
+
     fun resetAll() {
-        prefs.edit().clear().apply()
+        val keysToRemove = listOf(
+            "geminiAPIKey", "geminiSystemPrompt", "agentBackend",
+            "agentBaseURL", "agentToken",
+            "openClawHost", "openClawPort", "openClawHookToken", "openClawGatewayToken",
+            "webrtcSignalingURL",
+            "agentSessionKey", "agentSessionCreatedAt"
+        )
+        val editor = prefs.edit()
+        for (key in keysToRemove) {
+            editor.remove(key)
+        }
+        editor.apply()
     }
 
     const val DEFAULT_SYSTEM_PROMPT = """You are an AI assistant for someone wearing Meta Ray-Ban smart glasses. You can see through their camera and have a voice conversation. Keep responses concise and natural.
