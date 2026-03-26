@@ -406,6 +406,9 @@ The Voice Agent remains responsive throughout -- the user can continue talking w
 - [x] Auto-reconnect with exponential backoff
 - [x] Camera photo capture via voice command
 - [x] iOS and Android apps (feature parity)
+- [x] Persistent agent memory with Redis-backed storage
+- [x] Recent Tasks history viewer on both platforms
+- [ ] Google/Notion OAuth on Android (currently iOS-only)
 - [ ] OpenAI Realtime provider
 - [ ] Device provider abstraction
 
