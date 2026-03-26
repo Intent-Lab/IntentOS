@@ -227,6 +227,11 @@ class AgentBridge: ObservableObject {
     let (data, response) = try await session.data(for: request)
     guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
       let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+      // Parse structured error message from server
+      if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+         let errorMsg = json["error"] as? String {
+        throw AgentError.serverError(errorMsg)
+      }
       throw AgentError.httpError(code)
     }
 
@@ -376,6 +381,11 @@ class AgentBridge: ObservableObject {
     let (data, response) = try await session.data(for: request)
     guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
       let code = (response as? HTTPURLResponse)?.statusCode ?? 0
+      // Parse structured error message from server
+      if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+         let errorMsg = json["error"] as? String {
+        throw AgentError.serverError(errorMsg)
+      }
       throw AgentError.httpError(code)
     }
 

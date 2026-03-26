@@ -472,7 +472,10 @@ class OpenClawBridge {
         response.close()
 
         if (statusCode !in 200..299) {
-            throw RuntimeException("Sandbox init HTTP $statusCode")
+            val errorMsg = try {
+                JSONObject(responseBody).optString("error", "Sandbox init HTTP $statusCode")
+            } catch (_: Exception) { "Sandbox init HTTP $statusCode" }
+            throw RuntimeException(errorMsg)
         }
 
         val json = JSONObject(responseBody)
@@ -505,8 +508,12 @@ class OpenClawBridge {
         val response = client.newCall(request).execute()
         if (response.code !in 200..299) {
             val code = response.code
+            val errorBody = response.body?.string() ?: ""
             response.close()
-            throw RuntimeException("Sandbox stream HTTP $code")
+            val errorMsg = try {
+                JSONObject(errorBody).optString("error", "Sandbox stream HTTP $code")
+            } catch (_: Exception) { "Sandbox stream HTTP $code" }
+            throw RuntimeException(errorMsg)
         }
 
         val source = response.body?.source() ?: throw RuntimeException("Empty response body")
@@ -624,7 +631,10 @@ class OpenClawBridge {
 
         if (statusCode !in 200..299) {
             Log.d(TAG, "[E2B:Vercel] Chat failed: HTTP $statusCode - ${responseBody.take(200)}")
-            throw RuntimeException("HTTP $statusCode")
+            val errorMsg = try {
+                JSONObject(responseBody).optString("error", "HTTP $statusCode")
+            } catch (_: Exception) { "HTTP $statusCode" }
+            throw RuntimeException(errorMsg)
         }
 
         val json = JSONObject(responseBody)
