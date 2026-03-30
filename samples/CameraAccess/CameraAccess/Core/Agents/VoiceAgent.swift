@@ -91,6 +91,7 @@ class VoiceAgent: ObservableObject {
   }
 
   func sendVideoFrameIfThrottled(image: UIImage) {
+    guard SettingsManager.shared.videoStreamingEnabled else { return }
     guard connectionState == .ready else { return }
     let now = Date()
     guard now.timeIntervalSince(lastVideoFrameTime) >= GeminiConfig.videoFrameInterval else { return }
@@ -100,6 +101,10 @@ class VoiceAgent: ObservableObject {
 
   func sendToolResponse(_ response: [String: Any]) {
     provider.sendToolResponse(response)
+  }
+
+  func sendTextMessage(_ text: String) {
+    provider.sendTextMessage(text)
   }
 
   // MARK: - Private

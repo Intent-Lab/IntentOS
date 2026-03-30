@@ -17,6 +17,8 @@ struct SettingsView: View {
   @State private var openClawGatewayToken: String = ""
   @State private var webrtcSignalingURL: String = ""
   @State private var speakerOutputEnabled: Bool = false
+  @State private var videoStreamingEnabled: Bool = true
+  @State private var proactiveNotificationsEnabled: Bool = false
   @State private var selectedFontTheme: FontTheme = .tiempos
   @State private var showResetConfirmation = false
   @State private var openClawStatus: OpenClawConnectionStatus = .idle
@@ -233,6 +235,14 @@ struct SettingsView: View {
           Toggle("Speaker Output", isOn: $speakerOutputEnabled)
         }
 
+        Section(header: Text("Video"), footer: Text("Toggle whether video frames from the camera are sent to the AI model. Disable to save battery in audio-only mode.")) {
+          Toggle("Video Streaming", isOn: $videoStreamingEnabled)
+        }
+
+        Section(header: Text("Notifications"), footer: Text("Allow the agent to send proactive notifications (scheduled updates, reminders) during a voice session. Requires OpenClaw backend.")) {
+          Toggle("Proactive Notifications", isOn: $proactiveNotificationsEnabled)
+        }
+
         Section(header: Text("Font"), footer: Text("Switch between system font (SF Pro) and Tiempos serif font.")) {
           Picker("Font Theme", selection: $selectedFontTheme) {
             ForEach(FontTheme.allCases, id: \.self) { theme in
@@ -298,6 +308,8 @@ struct SettingsView: View {
     openClawGatewayToken = settings.openClawGatewayToken
     webrtcSignalingURL = settings.webrtcSignalingURL
     speakerOutputEnabled = settings.speakerOutputEnabled
+    videoStreamingEnabled = settings.videoStreamingEnabled
+    proactiveNotificationsEnabled = settings.proactiveNotificationsEnabled
     selectedFontTheme = FontTheme(rawValue: settings.fontTheme) ?? .tiempos
   }
 
@@ -350,6 +362,8 @@ struct SettingsView: View {
     settings.openClawGatewayToken = openClawGatewayToken.trimmingCharacters(in: .whitespacesAndNewlines)
     settings.webrtcSignalingURL = webrtcSignalingURL.trimmingCharacters(in: .whitespacesAndNewlines)
     settings.speakerOutputEnabled = speakerOutputEnabled
+    settings.videoStreamingEnabled = videoStreamingEnabled
+    settings.proactiveNotificationsEnabled = proactiveNotificationsEnabled
     settings.fontTheme = selectedFontTheme.rawValue
   }
 }

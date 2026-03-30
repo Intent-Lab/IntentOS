@@ -80,6 +80,7 @@ protocol VoiceModelProvider: AnyObject {
   func sendAudio(data: Data)
   func sendVideoFrame(image: UIImage)
   func sendToolResponse(_ response: [String: Any])
+  func sendTextMessage(_ text: String)
 
   var events: AsyncStream<VoiceModelEvent> { get }
 }

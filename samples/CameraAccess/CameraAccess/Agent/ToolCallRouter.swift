@@ -5,6 +5,10 @@ class ToolCallRouter {
   private let bridge: AgentBridge
   private var inFlightTasks: [String: Task<Void, Never>] = [:]
 
+  // Circuit breaker: stop tool calls after consecutive failures
+  private var consecutiveFailures: Int = 0
+  private let maxConsecutiveFailures = 3
+
   init(bridge: AgentBridge) {
     self.bridge = bridge
   }
@@ -21,6 +25,15 @@ class ToolCallRouter {
     NSLog("[ToolCall] Received: %@ (id: %@) args: %@",
           callName, callId, String(describing: call.args))
 
+    // Circuit breaker: reject if too many consecutive failures
+    if consecutiveFailures >= maxConsecutiveFailures {
+      NSLog("[ToolCall] Circuit breaker open (%d consecutive failures), rejecting %@", consecutiveFailures, callName)
+      let result = ToolResult.failure("Agent gateway is currently unavailable. Please try again later.")
+      let response = buildToolResponse(callId: callId, name: callName, result: result)
+      sendResponse(response)
+      return
+    }
+
     let task = Task { @MainActor in
       let taskDesc = call.args["task"] as? String ?? String(describing: call.args)
       let result = await bridge.delegateTask(task: taskDesc, toolName: callName)
@@ -28,6 +41,15 @@ class ToolCallRouter {
       guard !Task.isCancelled else {
         NSLog("[ToolCall] Task %@ was cancelled, skipping response", callId)
         return
+      }
+
+      // Track consecutive failures for circuit breaker
+      switch result {
+      case .success:
+        self.consecutiveFailures = 0
+      case .failure:
+        self.consecutiveFailures += 1
+        NSLog("[ToolCall] Consecutive failures: %d/%d", self.consecutiveFailures, self.maxConsecutiveFailures)
       }
 
       NSLog("[ToolCall] Result for %@ (id: %@): %@",
@@ -63,6 +85,11 @@ class ToolCallRouter {
     inFlightTasks.removeAll()
   }
 
+  /// Reset circuit breaker (e.g. after reconnecting)
+  func resetCircuitBreaker() {
+    consecutiveFailures = 0
+  }
+
   // MARK: - Private
 
   private func buildToolResponse(
@@ -76,7 +103,7 @@ class ToolCallRouter {
           [
             "id": callId,
             "name": name,
-            "response": result.responseValue
+            "response": result.responseValue.merging(["scheduling": "INTERRUPT"]) { _, new in new }
           ]
         ]
       ]

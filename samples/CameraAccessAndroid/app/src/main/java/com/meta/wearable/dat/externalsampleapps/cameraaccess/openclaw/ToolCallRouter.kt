@@ -13,9 +13,11 @@ class ToolCallRouter(
 ) {
     companion object {
         private const val TAG = "ToolCallRouter"
+        private const val MAX_CONSECUTIVE_FAILURES = 3
     }
 
     private val inFlightJobs = mutableMapOf<String, Job>()
+    private var consecutiveFailures = 0
 
     fun handleToolCall(
         call: GeminiFunctionCall,
@@ -26,11 +28,29 @@ class ToolCallRouter(
 
         Log.d(TAG, "Received: $callName (id: $callId) args: ${call.args}")
 
+        // Circuit breaker: reject if too many consecutive failures
+        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+            Log.d(TAG, "Circuit breaker open ($consecutiveFailures consecutive failures), rejecting $callName")
+            val result = ToolResult.Failure("Agent gateway is currently unavailable. Please try again later.")
+            val response = buildToolResponse(callId, callName, result)
+            sendResponse(response)
+            return
+        }
+
         val job = scope.launch {
             val taskDesc = call.args["task"]?.toString() ?: call.args.toString()
             val result = bridge.delegateTask(task = taskDesc, toolName = callName)
 
             if (!coroutineContext[Job]!!.isCancelled) {
+                // Track consecutive failures for circuit breaker
+                when (result) {
+                    is ToolResult.Success -> consecutiveFailures = 0
+                    is ToolResult.Failure -> {
+                        consecutiveFailures++
+                        Log.d(TAG, "Consecutive failures: $consecutiveFailures/$MAX_CONSECUTIVE_FAILURES")
+                    }
+                }
+
                 Log.d(TAG, "Result for $callName (id: $callId): $result")
                 val response = buildToolResponse(callId, callName, result)
                 sendResponse(response)
@@ -63,6 +83,10 @@ class ToolCallRouter(
         inFlightJobs.clear()
     }
 
+    fun resetCircuitBreaker() {
+        consecutiveFailures = 0
+    }
+
     private fun buildToolResponse(
         callId: String,
         name: String,
@@ -73,7 +97,9 @@ class ToolCallRouter(
                 put("functionResponses", JSONArray().put(JSONObject().apply {
                     put("id", callId)
                     put("name", name)
-                    put("response", result.toJSON())
+                    put("response", result.toJSON().apply {
+                        put("scheduling", "INTERRUPT")
+                    })
                 }))
             })
         }

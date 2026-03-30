@@ -22,6 +22,8 @@ final class SettingsManager {
     case openClawGatewayToken
     case webrtcSignalingURL
     case speakerOutputEnabled
+    case videoStreamingEnabled
+    case proactiveNotificationsEnabled
     case userId
     case agentSessionKey
     case agentSessionCreatedAt
@@ -113,6 +115,20 @@ final class SettingsManager {
     set { defaults.set(newValue, forKey: Key.speakerOutputEnabled.rawValue) }
   }
 
+  var videoStreamingEnabled: Bool {
+    get {
+      // Default to true if never set
+      if defaults.object(forKey: Key.videoStreamingEnabled.rawValue) == nil { return true }
+      return defaults.bool(forKey: Key.videoStreamingEnabled.rawValue)
+    }
+    set { defaults.set(newValue, forKey: Key.videoStreamingEnabled.rawValue) }
+  }
+
+  var proactiveNotificationsEnabled: Bool {
+    get { defaults.bool(forKey: Key.proactiveNotificationsEnabled.rawValue) }
+    set { defaults.set(newValue, forKey: Key.proactiveNotificationsEnabled.rawValue) }
+  }
+
   // MARK: - User Identity (permanent, survives reset)
 
   var userId: String {
@@ -147,7 +163,7 @@ final class SettingsManager {
     for key in [Key.geminiAPIKey, .geminiSystemPrompt, .agentBackend,
                 .agentBaseURL, .agentToken,
                 .openClawHost, .openClawPort, .openClawHookToken, .openClawGatewayToken,
-                .webrtcSignalingURL, .speakerOutputEnabled,
+                .webrtcSignalingURL, .speakerOutputEnabled, .videoStreamingEnabled, .proactiveNotificationsEnabled,
                 .agentSessionKey, .agentSessionCreatedAt] {
       defaults.removeObject(forKey: key.rawValue)
     }

@@ -222,6 +222,11 @@ class GeminiLiveService {
                     put("activityHandling", "START_OF_ACTIVITY_INTERRUPTS")
                     put("turnCoverage", "TURN_INCLUDES_ALL_INPUT")
                 })
+                put("contextWindowCompression", JSONObject().apply {
+                    put("slidingWindow", JSONObject().apply {
+                        put("targetTokens", 80000)
+                    })
+                })
                 put("inputAudioTranscription", JSONObject())
                 put("outputAudioTranscription", JSONObject())
             })

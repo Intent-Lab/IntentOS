@@ -32,7 +32,7 @@ struct AgentResult {
           [
             "id": taskId,
             "name": toolName,
-            "response": result.responseValue
+            "response": result.responseValue.merging(["scheduling": "INTERRUPT"]) { _, new in new }
           ]
         ]
       ]

@@ -26,6 +26,7 @@
 		8FFD60542E849D0D0035E446 /* RegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FFD60532E849D0D0035E446 /* RegistrationView.swift */; };
 		8FFD60602E84A2F70035E446 /* MainAppView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FFD605F2E84A2F70035E446 /* MainAppView.swift */; };
 		8FFD60612E84A2F70035E446 /* DebugMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FFD605E2E84A2F70035E446 /* DebugMenuView.swift */; };
+		9D7CDAC92F7AEA430001492F /* RecentTasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D7CDAC82F7AEA430001492F /* RecentTasksView.swift */; };
 		9DA4B8662F60DD53003E0C93 /* RemoteLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA4B8652F60DD53003E0C93 /* RemoteLogger.swift */; };
 		9DA4B89F2F61FBF8003E0C93 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 9DA4B89E2F61FBF8003E0C93 /* GoogleSignIn */; };
 		9DA4B8A12F61FBF8003E0C93 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 9DA4B8A02F61FBF8003E0C93 /* GoogleSignInSwift */; };
@@ -53,11 +54,6 @@
 		9DBB18BC2F5FFF370019775B /* VoiceModelProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18B62F5FFF370019775B /* VoiceModelProvider.swift */; };
 		9DBB18BD2F5FFF370019775B /* ActionAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18AF2F5FFF370019775B /* ActionAgent.swift */; };
 		9DBB18BE2F5FFF370019775B /* AgentCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18B02F5FFF370019775B /* AgentCoordinator.swift */; };
-		A1C4114A2F6200000000000A /* CallManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C4114B2F6200000000000A /* CallManager.swift */; };
-		A1D5220A2F6300000000000A /* CapturedPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D5220B2F6300000000000A /* CapturedPhoto.swift */; };
-		A1D5220C2F6300000000000B /* PhotoCaptureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D5220D2F6300000000000B /* PhotoCaptureStore.swift */; };
-		A1D5220E2F6300000000000C /* GalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D5220F2F6300000000000C /* GalleryView.swift */; };
-		A1D522102F6300000000000D /* GalleryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D522112F6300000000000D /* GalleryDetailView.swift */; };
 		9DBB18D32F60A2100019775B /* AgentConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18CF2F60A2100019775B /* AgentConfig.swift */; };
 		9DBB18D42F60A2100019775B /* ToolCallModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18D02F60A2100019775B /* ToolCallModels.swift */; };
 		9DBB18D52F60A2100019775B /* ToolCallRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB18D12F60A2100019775B /* ToolCallRouter.swift */; };
@@ -82,6 +78,11 @@
 		A1B2C3D42F0A000200000003 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A000100000003 /* AudioManager.swift */; };
 		A1B2C3D42F0A000200000004 /* GeminiSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A000100000004 /* GeminiSessionViewModel.swift */; };
 		A1B2C3D42F0A000200000005 /* GeminiOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A000100000005 /* GeminiOverlayView.swift */; };
+		A1C4114A2F6200000000000A /* CallManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C4114B2F6200000000000A /* CallManager.swift */; };
+		A1D5220A2F6300000000000A /* CapturedPhoto.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D5220B2F6300000000000A /* CapturedPhoto.swift */; };
+		A1D5220C2F6300000000000B /* PhotoCaptureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D5220D2F6300000000000B /* PhotoCaptureStore.swift */; };
+		A1D5220E2F6300000000000C /* GalleryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D5220F2F6300000000000C /* GalleryView.swift */; };
+		A1D522102F6300000000000D /* GalleryDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1D522112F6300000000000D /* GalleryDetailView.swift */; };
 		E66D30242E7DA71900470B48 /* MockDeviceKitButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = E66D30232E7DA71900470B48 /* MockDeviceKitButton.swift */; };
 		E6A188482EB918740097D0E1 /* StreamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A188472EB918740097D0E1 /* StreamView.swift */; };
 		E6DA451D2E79A63100E3F688 /* MockDeviceCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DA45182E79A63100E3F688 /* MockDeviceCardView.swift */; };
@@ -134,6 +135,7 @@
 		8FFD60532E849D0D0035E446 /* RegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationView.swift; sourceTree = "<group>"; };
 		8FFD605E2E84A2F70035E446 /* DebugMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugMenuView.swift; sourceTree = "<group>"; };
 		8FFD605F2E84A2F70035E446 /* MainAppView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainAppView.swift; sourceTree = "<group>"; };
+		9D7CDAC82F7AEA430001492F /* RecentTasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecentTasksView.swift; sourceTree = "<group>"; };
 		9DA4B8652F60DD53003E0C93 /* RemoteLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteLogger.swift; sourceTree = "<group>"; };
 		9DA4B8A22F61FF5A003E0C93 /* GoogleAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuthManager.swift; sourceTree = "<group>"; };
 		9DA4B8A42F620FFD003E0C93 /* NotionAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotionAuthManager.swift; sourceTree = "<group>"; };
@@ -156,11 +158,6 @@
 		9DBB18AD2F5FFE5D0019775B /* GeminiChatService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiChatService.swift; sourceTree = "<group>"; };
 		9DBB18AF2F5FFF370019775B /* ActionAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionAgent.swift; sourceTree = "<group>"; };
 		9DBB18B02F5FFF370019775B /* AgentCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentCoordinator.swift; sourceTree = "<group>"; };
-		A1C4114B2F6200000000000A /* CallManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallManager.swift; sourceTree = "<group>"; };
-		A1D5220B2F6300000000000A /* CapturedPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturedPhoto.swift; sourceTree = "<group>"; };
-		A1D5220D2F6300000000000B /* PhotoCaptureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCaptureStore.swift; sourceTree = "<group>"; };
-		A1D5220F2F6300000000000C /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
-		A1D522112F6300000000000D /* GalleryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryDetailView.swift; sourceTree = "<group>"; };
 		9DBB18B12F5FFF370019775B /* VoiceAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAgent.swift; sourceTree = "<group>"; };
 		9DBB18B32F5FFF370019775B /* GeminiLiveProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiLiveProvider.swift; sourceTree = "<group>"; };
 		9DBB18B52F5FFF370019775B /* AgentProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentProtocol.swift; sourceTree = "<group>"; };
@@ -188,6 +185,11 @@
 		A1B2C3D42F0A000100000003 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		A1B2C3D42F0A000100000004 /* GeminiSessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiSessionViewModel.swift; sourceTree = "<group>"; };
 		A1B2C3D42F0A000100000005 /* GeminiOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiOverlayView.swift; sourceTree = "<group>"; };
+		A1C4114B2F6200000000000A /* CallManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallManager.swift; sourceTree = "<group>"; };
+		A1D5220B2F6300000000000A /* CapturedPhoto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturedPhoto.swift; sourceTree = "<group>"; };
+		A1D5220D2F6300000000000B /* PhotoCaptureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCaptureStore.swift; sourceTree = "<group>"; };
+		A1D5220F2F6300000000000C /* GalleryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryView.swift; sourceTree = "<group>"; };
+		A1D522112F6300000000000D /* GalleryDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GalleryDetailView.swift; sourceTree = "<group>"; };
 		E66D30232E7DA71900470B48 /* MockDeviceKitButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDeviceKitButton.swift; sourceTree = "<group>"; };
 		E699CC952E8150670052C240 /* CameraAccessTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CameraAccessTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E6A188472EB918740097D0E1 /* StreamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamView.swift; sourceTree = "<group>"; };
@@ -395,14 +397,6 @@
 			path = Protocols;
 			sourceTree = "<group>";
 		};
-		A1D522202F6300000000000E /* Services */ = {
-			isa = PBXGroup;
-			children = (
-				A1D5220D2F6300000000000B /* PhotoCaptureStore.swift */,
-			);
-			path = Services;
-			sourceTree = "<group>";
-		};
 		9DBB18B82F5FFF370019775B /* Core */ = {
 			isa = PBXGroup;
 			children = (
@@ -447,6 +441,7 @@
 		9DD894B12F4047630090B9B9 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				9D7CDAC82F7AEA430001492F /* RecentTasksView.swift */,
 				9DA4B8B52F625D4A003E0C93 /* AppFont.swift */,
 				9DD894AF2F4047630090B9B9 /* SettingsManager.swift */,
 				9DD894B02F4047630090B9B9 /* SettingsView.swift */,
@@ -464,6 +459,14 @@
 				A1B2C3D42F0A000100000004 /* GeminiSessionViewModel.swift */,
 			);
 			path = Gemini;
+			sourceTree = "<group>";
+		};
+		A1D522202F6300000000000E /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A1D5220D2F6300000000000B /* PhotoCaptureStore.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 		E6DA451B2E79A63100E3F688 /* MockDeviceKit */ = {
@@ -641,6 +644,7 @@
 				9DBB18BB2F5FFF370019775B /* GeminiLiveProvider.swift in Sources */,
 				9DBB18BC2F5FFF370019775B /* VoiceModelProvider.swift in Sources */,
 				9DBB18BD2F5FFF370019775B /* ActionAgent.swift in Sources */,
+				9D7CDAC92F7AEA430001492F /* RecentTasksView.swift in Sources */,
 				9DBB18BE2F5FFF370019775B /* AgentCoordinator.swift in Sources */,
 				A1C4114A2F6200000000000A /* CallManager.swift in Sources */,
 				A1D5220A2F6300000000000A /* CapturedPhoto.swift in Sources */,

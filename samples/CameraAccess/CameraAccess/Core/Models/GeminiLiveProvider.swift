@@ -56,6 +56,10 @@ class GeminiLiveProvider: VoiceModelProvider {
     service.sendToolResponse(response)
   }
 
+  func sendTextMessage(_ text: String) {
+    service.sendTextMessage(text)
+  }
+
   // MARK: - Private
 
   private func wireCallbacks() {

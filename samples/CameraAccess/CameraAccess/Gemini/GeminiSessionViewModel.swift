@@ -15,6 +15,7 @@ class GeminiSessionViewModel: ObservableObject {
   private(set) var coordinator: AgentCoordinator?
   private var stateObservation: Task<Void, Never>?
   private var reconnectTask: Task<Void, Never>?
+  private let eventClient = OpenClawEventClient()
   private var reconnectAttempts: Int = 0
   private let maxReconnectAttempts = 3
   private var lastSessionConfig: VoiceSessionConfig?
@@ -111,6 +112,20 @@ class GeminiSessionViewModel: ObservableObject {
     }
 
     reconnectAttempts = 0
+
+    // Connect event client for proactive notifications (OpenClaw only)
+    if SettingsManager.shared.proactiveNotificationsEnabled &&
+       SettingsManager.shared.agentBackend == .openClaw {
+      eventClient.onNotification = { [weak self] text in
+        guard let self else { return }
+        Task { @MainActor in
+          guard self.isGeminiActive, self.connectionState == .ready else { return }
+          self.coordinator?.voiceAgent.sendTextMessage(text)
+        }
+      }
+      eventClient.connect()
+    }
+
     return true
   }
 
@@ -177,6 +192,7 @@ class GeminiSessionViewModel: ObservableObject {
     if let bridge = sharedAgentBridge {
       Task { await bridge.flushMemory() }
     }
+    eventClient.disconnect()
     reconnectTask?.cancel()
     reconnectTask = nil
     reconnectAttempts = 0
