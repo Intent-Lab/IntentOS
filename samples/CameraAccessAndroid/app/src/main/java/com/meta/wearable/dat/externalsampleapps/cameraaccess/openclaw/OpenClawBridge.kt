@@ -156,6 +156,9 @@ class OpenClawBridge {
     /** Track last-used backend to detect switches */
     private var lastUsedBackend: AgentBackend? = null
 
+    /** Last OpenClaw response ID for session continuity via previous_response_id */
+    private var lastOpenClawResponseId: String? = null
+
     /** Which backend this bridge is using (reads dynamically from settings) */
     val backend: AgentBackend
         get() = SettingsManager.agentBackend
@@ -257,6 +260,7 @@ class OpenClawBridge {
         conversationHistory.clear()
         sandboxUrl = null
         sandboxAuthToken = null
+        lastOpenClawResponseId = null
         SettingsManager.agentSessionKey = sessionKey
         SettingsManager.agentSessionCreatedAt = System.currentTimeMillis()
         Log.d(TAG, "Reset session: $sessionKey")
@@ -658,26 +662,16 @@ class OpenClawBridge {
         val host = SettingsManager.openClawHost
         val port = SettingsManager.openClawPort
         val gatewayToken = SettingsManager.openClawGatewayToken
-        val url = "$host:$port/v1/chat/completions"
-
-        conversationHistory.add(JSONObject().apply {
-            put("role", "user")
-            put("content", task)
-        })
-        trimHistory()
-
-        Log.d(TAG, "[OpenClaw] Sending ${conversationHistory.size} messages (streaming)")
-
-        val messagesArray = JSONArray()
-        for (msg in conversationHistory) {
-            messagesArray.put(msg)
-        }
+        val url = "$host:$port/v1/responses"
 
         val body = JSONObject().apply {
             put("model", "openclaw")
-            put("messages", messagesArray)
+            put("input", task)
             put("stream", true)
+            lastOpenClawResponseId?.let { put("previous_response_id", it) }
         }
+
+        Log.d(TAG, "[OpenClaw] Sending via /v1/responses (streaming, prevId: $lastOpenClawResponseId)")
 
         val request = Request.Builder()
             .url(url)
@@ -694,7 +688,7 @@ class OpenClawBridge {
             val code = response.code
             val errorBody = response.body?.string() ?: ""
             response.close()
-            Log.d(TAG, "[OpenClaw] Chat failed: HTTP $code - ${errorBody.take(200)}")
+            Log.d(TAG, "[OpenClaw] Request failed: HTTP $code - ${errorBody.take(200)}")
             throw RuntimeException("HTTP $code")
         }
 
@@ -705,7 +699,7 @@ class OpenClawBridge {
             while (!source.exhausted()) {
                 val line = source.readUtf8Line() ?: break
 
-                // OpenAI SSE format: "data: {...}" or "data: [DONE]"
+                // OpenResponses SSE format: "data: {...}" or "data: [DONE]"
                 if (!line.startsWith("data: ")) continue
                 val dataStr = line.removePrefix("data: ")
 
@@ -713,18 +707,52 @@ class OpenClawBridge {
 
                 try {
                     val json = JSONObject(dataStr)
-                    val choices = json.optJSONArray("choices") ?: continue
-                    val delta = choices.optJSONObject(0)?.optJSONObject("delta") ?: continue
-                    val content = delta.optString("content", "")
+                    val type = json.optString("type", "")
 
-                    if (content.isNotEmpty()) {
-                        // Mark thinking as done on first token
-                        if (accumulated.isEmpty()) {
-                            markThinkingDone()
+                    when (type) {
+                        "response.in_progress" -> {
+                            // Server confirmed it's processing - show immediate feedback
+                            val steps = _agentSteps.value.toMutableList()
+                            steps.add(AgentStep(
+                                type = AgentStep.StepType.Tool("openclaw"),
+                                label = "OpenClaw processing..."
+                            ))
+                            _agentSteps.value = steps
+                            Log.d(TAG, "[OpenClaw] Server is processing")
                         }
-                        accumulated += content
-                        _streamingText.value = accumulated
+
+                        "response.output_text.delta" -> {
+                            val delta = json.optString("delta", "")
+                            if (delta.isNotEmpty()) {
+                                // Mark thinking + processing as done on first token
+                                if (accumulated.isEmpty()) {
+                                    markAllStepsDone()
+                                }
+                                accumulated += delta
+                                _streamingText.value = accumulated
+                            }
+                        }
+
+                        "response.completed" -> {
+                            // Extract response ID for session continuity
+                            val resp = json.optJSONObject("response")
+                            val respId = resp?.optString("id", null)
+                            if (respId != null) {
+                                lastOpenClawResponseId = respId
+                                Log.d(TAG, "[OpenClaw] Response completed, id: $respId")
+                            }
+                        }
+
+                        "response.failed" -> {
+                            val resp = json.optJSONObject("response")
+                            val error = resp?.optJSONObject("error")
+                            val message = error?.optString("message", "OpenClaw request failed")
+                                ?: "OpenClaw request failed"
+                            throw RuntimeException(message)
+                        }
                     }
+                } catch (e: RuntimeException) {
+                    throw e
                 } catch (_: Exception) {
                     // Skip malformed JSON chunks
                 }
@@ -734,10 +762,6 @@ class OpenClawBridge {
         }
 
         val result = accumulated.ifEmpty { "OK" }
-        conversationHistory.add(JSONObject().apply {
-            put("role", "assistant")
-            put("content", result)
-        })
         Log.d(TAG, "[OpenClaw] Agent result: ${result.take(200)}")
         return result
     }
@@ -759,6 +783,18 @@ class OpenClawBridge {
             steps[idx] = steps[idx].copy(isDone = true)
             _agentSteps.value = steps
         }
+    }
+
+    private fun markAllStepsDone() {
+        val steps = _agentSteps.value.toMutableList()
+        var changed = false
+        for (i in steps.indices) {
+            if (!steps[i].isDone) {
+                steps[i] = steps[i].copy(isDone = true)
+                changed = true
+            }
+        }
+        if (changed) _agentSteps.value = steps
     }
 
     private fun newSessionKey(): String {

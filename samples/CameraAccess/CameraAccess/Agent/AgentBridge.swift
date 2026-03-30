@@ -49,6 +49,9 @@ class AgentBridge: ObservableObject {
   /// Track last-used backend to detect switches
   private var lastUsedBackend: AgentBackend?
 
+  /// Last OpenClaw response ID for session continuity via previous_response_id
+  private var lastOpenClawResponseId: String?
+
   /// Which backend this bridge is using (reads dynamically from settings)
   var backend: AgentBackend {
     SettingsManager.shared.agentBackend
@@ -153,6 +156,7 @@ class AgentBridge: ObservableObject {
     conversationHistory = []
     sandboxUrl = nil
     sandboxAuthToken = nil
+    lastOpenClawResponseId = nil
     let settings = SettingsManager.shared
     settings.agentSessionKey = newKey
     settings.agentSessionCreatedAt = Date().timeIntervalSince1970
@@ -408,13 +412,8 @@ class AgentBridge: ObservableObject {
   private func sendViaOpenClaw(prompt: String) async throws -> String {
     let settings = SettingsManager.shared
     let base = "\(settings.openClawHost):\(settings.openClawPort)"
-    guard let url = URL(string: "\(base)/v1/chat/completions") else {
+    guard let url = URL(string: "\(base)/v1/responses") else {
       throw AgentError.invalidURL
-    }
-
-    conversationHistory.append(["role": "user", "content": prompt])
-    if conversationHistory.count > maxHistoryTurns * 2 {
-      conversationHistory = Array(conversationHistory.suffix(maxHistoryTurns * 2))
     }
 
     var request = URLRequest(url: url)
@@ -423,14 +422,18 @@ class AgentBridge: ObservableObject {
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
     request.setValue(sessionKey, forHTTPHeaderField: "x-openclaw-session-key")
 
-    let body: [String: Any] = [
+    var body: [String: Any] = [
       "model": "openclaw",
-      "messages": conversationHistory,
+      "input": prompt,
       "stream": true,
     ]
+    if let prevId = lastOpenClawResponseId {
+      body["previous_response_id"] = prevId
+    }
     request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-    NSLog("[Agent:OpenClaw] Sending %d messages (streaming)", conversationHistory.count)
+    NSLog("[Agent:OpenClaw] Sending via /v1/responses (streaming, prevId: %@)",
+          lastOpenClawResponseId ?? "none")
 
     streamingText = ""
 
@@ -443,7 +446,7 @@ class AgentBridge: ObservableObject {
     var accumulated = ""
 
     for try await line in bytes.lines {
-      // OpenAI SSE format: "data: {...}" or "data: [DONE]"
+      // OpenResponses SSE format: "data: {...}" or "data: [DONE]"
       guard line.hasPrefix("data: ") else { continue }
       let dataStr = String(line.dropFirst(6))
 
@@ -453,26 +456,50 @@ class AgentBridge: ObservableObject {
 
       guard let data = dataStr.data(using: .utf8),
             let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let choices = json["choices"] as? [[String: Any]],
-            let first = choices.first,
-            let delta = first["delta"] as? [String: Any] else {
+            let type = json["type"] as? String else {
         continue
       }
 
-      if let content = delta["content"] as? String {
-        // Mark thinking as done on first token
-        if accumulated.isEmpty {
-          if let idx = agentSteps.firstIndex(where: { $0.type == .thinking && !$0.isDone }) {
-            agentSteps[idx].isDone = true
+      switch type {
+      case "response.in_progress":
+        // Server confirmed it's processing - show immediate feedback
+        agentSteps.append(AgentStep(type: .tool("openclaw"), label: "OpenClaw processing..."))
+        NSLog("[Agent:OpenClaw] Server is processing")
+
+      case "response.output_text.delta":
+        if let delta = json["delta"] as? String, !delta.isEmpty {
+          // Mark thinking + processing as done on first token
+          if accumulated.isEmpty {
+            for i in agentSteps.indices where !agentSteps[i].isDone {
+              agentSteps[i].isDone = true
+            }
           }
+          accumulated += delta
+          streamingText = accumulated
         }
-        accumulated += content
-        streamingText = accumulated
+
+      case "response.completed":
+        // Extract response ID for session continuity
+        if let resp = json["response"] as? [String: Any],
+           let respId = resp["id"] as? String {
+          lastOpenClawResponseId = respId
+          NSLog("[Agent:OpenClaw] Response completed, id: %@", respId)
+        }
+
+      case "response.failed":
+        if let resp = json["response"] as? [String: Any],
+           let error = resp["error"] as? [String: Any],
+           let message = error["message"] as? String {
+          throw AgentError.serverError(message)
+        }
+        throw AgentError.serverError("OpenClaw request failed")
+
+      default:
+        break
       }
     }
 
     let result = accumulated.isEmpty ? "OK" : accumulated
-    conversationHistory.append(["role": "assistant", "content": result])
     return result
   }
 
